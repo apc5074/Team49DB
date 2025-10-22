@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 import { Film } from "lucide-react";
 
 export default function SignUpPage() {
@@ -43,6 +43,7 @@ export default function SignUpPage() {
     }
 
     try {
+      // 1) Create the account
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,8 +61,21 @@ export default function SignUpPage() {
         throw new Error(data?.error || "Signup failed");
       }
 
-      // Success — route to sign-in (or /collections if you auto-login)
-      router.push("/home");
+      // 2) Immediately sign in to set the session cookie
+      const signin = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // allow either email or username; here we use email
+        body: JSON.stringify({ id: email, password }),
+      });
+
+      if (!signin.ok) {
+        const data = await signin.json().catch(() => ({}));
+        throw new Error(data?.error || "Auto sign-in failed");
+      }
+
+      // 3) Go to /home
+      router.replace("/home");
     } catch (err: any) {
       setError(err?.message || "Signup failed");
     } finally {

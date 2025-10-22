@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +9,44 @@ import { Label } from "@/components/ui/label";
 import { Film } from "lucide-react";
 
 export default function SignInPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const fd = new FormData(e.currentTarget);
+    const id = String(fd.get("email") || "").trim(); // email or username
+    const password = String(fd.get("password") || "");
+
+    try {
+      const res = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // your signin API accepts { id, password }
+        body: JSON.stringify({ id, password }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Sign in failed");
+      }
+
+      // cookie is set server-side; now navigate
+      router.replace("/home"); // or "/collections"
+    } catch (err: any) {
+      setError(err?.message ?? "Sign in failed");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-      {/* Card */}
       <div className="w-full max-w-md bg-card/60 backdrop-blur-md border border-border rounded-2xl shadow-lg p-8 space-y-6">
-        {/* Logo / Header */}
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-2 mb-2">
             <Film className="w-8 h-8 text-primary" />
@@ -27,21 +59,14 @@ export default function SignInPage() {
           </p>
         </div>
 
-        {/* Form */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setLoading(true);
-            setTimeout(() => setLoading(false), 1500);
-          }}
-          className="space-y-4"
-        >
+        <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email or Username</Label>
             <Input
               id="email"
-              type="email"
-              placeholder="you@example.com"
+              name="email"
+              type="text"
+              placeholder="you@example.com or yourname"
               className="mt-1"
               required
             />
@@ -51,12 +76,15 @@ export default function SignInPage() {
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               placeholder="••••••••"
               className="mt-1"
               required
             />
           </div>
+
+          {error && <div className="text-sm text-destructive">{error}</div>}
 
           <Button
             type="submit"
@@ -67,7 +95,6 @@ export default function SignInPage() {
           </Button>
         </form>
 
-        {/* Divider */}
         <div className="relative text-center">
           <span className="absolute inset-x-0 top-1/2 h-px bg-border"></span>
           <span className="relative bg-card px-3 text-muted-foreground text-xs uppercase">
@@ -75,7 +102,6 @@ export default function SignInPage() {
           </span>
         </div>
 
-        {/* Create Account */}
         <div className="text-center space-y-3">
           <p className="text-muted-foreground text-sm">
             Don’t have an account?
@@ -91,7 +117,6 @@ export default function SignInPage() {
         </div>
       </div>
 
-      {/* Footer */}
       <p className="text-muted-foreground text-xs mt-8">
         © 2024 CineVault. All rights reserved.
       </p>

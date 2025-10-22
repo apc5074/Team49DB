@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Pencil, Trash2, Plus, Folder, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+type SessionUser = {
+  userId: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+};
+
 type Collection = {
   collection_id: number;
   name: string;
@@ -23,9 +32,13 @@ type Collection = {
 };
 
 export default function CollectionsPage() {
-  // TODO: replace with real user id from your auth/session
-  const userId = 1;
+  const router = useRouter();
 
+  // session state
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [user, setUser] = useState<SessionUser | null>(null);
+
+  // collections state
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,11 +48,42 @@ export default function CollectionsPage() {
   const [newName, setNewName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // 1) load session
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/session", { cache: "no-store" });
+        if (!res.ok) throw new Error("unauthorized");
+        const data = await res.json();
+        if (!cancelled) {
+          setUser(data.user as SessionUser);
+        }
+      } catch {
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setSessionLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 2) redirect if not signed in
+  useEffect(() => {
+    if (!sessionLoading && !user) {
+      router.replace("/signin");
+    }
+  }, [sessionLoading, user, router]);
+
+  // 3) fetch collections once session is ready
   async function fetchCollections() {
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/collections?userId=${userId}`, {
+      const res = await fetch(`/api/collections?userId=${user.userId}`, {
         cache: "no-store",
       });
       if (!res.ok) throw new Error(await res.text());
@@ -53,11 +97,15 @@ export default function CollectionsPage() {
   }
 
   useEffect(() => {
-    fetchCollections();
+    if (user) {
+      fetchCollections();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user]);
 
+  // 4) create / rename / delete — now use user.userId
   async function createCollection() {
+    if (!user) return;
     const name = newName.trim();
     if (!name) return;
     setSubmitting(true);
@@ -66,7 +114,7 @@ export default function CollectionsPage() {
       const res = await fetch("/api/collections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, userId }),
+        body: JSON.stringify({ name, userId: user.userId }),
       });
       if (!res.ok) {
         const txt = await res.text();
@@ -83,6 +131,7 @@ export default function CollectionsPage() {
   }
 
   async function renameCollection(id: number) {
+    if (!user) return;
     const current = collections.find((c) => c.collection_id === id)?.name ?? "";
     const name = prompt("Rename collection:", current);
     if (name == null || !name.trim()) return;
@@ -96,7 +145,7 @@ export default function CollectionsPage() {
       const res = await fetch(`/api/collections/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), userId }),
+        body: JSON.stringify({ name: name.trim(), userId: user.userId }),
       });
       if (!res.ok) throw new Error(await res.text());
     } catch (e: any) {
@@ -106,11 +155,12 @@ export default function CollectionsPage() {
   }
 
   async function deleteCollection(id: number) {
+    if (!user) return;
     if (!confirm("Delete this collection? This cannot be undone.")) return;
     const prev = collections;
     setCollections((cs) => cs.filter((c) => c.collection_id !== id));
     try {
-      const res = await fetch(`/api/collections/${id}?userId=${userId}`, {
+      const res = await fetch(`/api/collections/${id}?userId=${user.userId}`, {
         method: "DELETE",
       });
       if (!res.ok && res.status !== 204) throw new Error(await res.text());
@@ -125,6 +175,28 @@ export default function CollectionsPage() {
     [loading, collections]
   );
 
+  // While we resolve session, show a soft skeleton
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto px-4 py-10">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-28 rounded-2xl bg-card/60 border border-border animate-pulse"
+              />
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // If redirected, this won’t render; this protects just in case
+  if (!user) return null;
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -137,8 +209,8 @@ export default function CollectionsPage() {
               Your Collections
             </h1>
             <p className="text-muted-foreground mt-1">
-              Create lists and group your favorite movies by theme, mood, or
-              occasion.
+              Welcome back, {user.firstName}! Create lists and group your
+              favorite movies by theme, mood, or occasion.
             </p>
           </div>
 

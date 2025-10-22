@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { query } from "@/lib/db";
+import { createSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -82,6 +83,14 @@ export async function POST(req: Request) {
       `UPDATE ${TABLE} SET ${COL.lastAccess} = NOW() WHERE ${COL.userId} = $1`,
       [user.user_id]
     );
+
+    await createSession({
+      userId: user.user_id,
+      username: user.username,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+    });
 
     return NextResponse.json(
       {

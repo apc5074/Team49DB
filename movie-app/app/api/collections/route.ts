@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
   try {
     const { rows } = await query<{ collection_id: number }>(
-      `INSERT INTO public.collections (name, user_id)
+      `INSERT INTO p320_49.collection (name, user_id)
        VALUES ($1, $2)
        RETURNING collection_id`,
       [name, userId]
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
 
   const { rows } = await query(
     `SELECT collection_id, name, user_id, created_at
-       FROM public.collections
+       FROM p320_49.collection
        WHERE user_id = $1
        ORDER BY created_at DESC`,
     [userId]

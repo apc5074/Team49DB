@@ -36,7 +36,7 @@ export async function PATCH(
 
   try {
     const { rowCount } = await query(
-      `UPDATE public.collections
+      `UPDATE p320_49.collection
          SET name = $1
        WHERE collection_id = $2
          AND user_id = $3`,
@@ -91,7 +91,7 @@ export async function DELETE(
 
   try {
     const { rowCount } = await query(
-      `DELETE FROM public.collections
+      `DELETE FROM p320_49.collections
         WHERE collection_id = $1
           AND user_id = $2`,
       [collectionId, userId]
