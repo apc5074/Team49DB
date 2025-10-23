@@ -44,8 +44,8 @@ export async function createSession(user: SessionUser, days = 7) {
   });
 }
 
-export function clearSession() {
-  const c = cookies();
+export async function clearSession() {
+  const c = await cookies();
   c.delete(AUTH_COOKIE);
 }
 
