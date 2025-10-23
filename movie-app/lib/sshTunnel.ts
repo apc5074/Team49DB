@@ -1,4 +1,3 @@
-// lib/sshTunnel.ts
 import { Client, ConnectConfig } from "ssh2";
 import net, { AddressInfo } from "node:net";
 
@@ -34,7 +33,6 @@ export async function ensureSshTunnel(): Promise<number> {
 
     conn
       .on("ready", () => {
-        // Create a local TCP server that forwards to remote DB via SSH
         const server = net.createServer((socket) => {
           conn.forwardOut(
             socket.remoteAddress || "127.0.0.1",
@@ -60,13 +58,12 @@ export async function ensureSshTunnel(): Promise<number> {
         });
 
         server.on("error", (err) => reject(err));
-        server.listen(0, "127.0.0.1"); // ephemeral local port
+        server.listen(0, "127.0.0.1");
       })
       .on("error", (err) => reject(err))
       .connect(connectConfig());
   });
 
-  // Clean up on process exit in dev
   const cleanup = () => {
     try {
       localServer?.close();

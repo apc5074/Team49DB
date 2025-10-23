@@ -1,4 +1,3 @@
-// app/home/[collectionId]/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -19,12 +18,11 @@ import {
 import { Play, Plus, MoreHorizontal, Clock, Folder } from "lucide-react";
 
 type MovieRow = {
-  id: number; // mov_uid
+  id: number;
   title: string;
   genre?: string | null;
-  duration?: string | null; // e.g., "148m"
+  duration?: string | null;
   year?: number | string | null;
-  poster?: string | null; // URL optional for later
 };
 
 export default function CollectionPage() {
@@ -33,7 +31,6 @@ export default function CollectionPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  // Add dialog state
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [movUid, setMovUid] = useState<string>("");
@@ -57,7 +54,6 @@ export default function CollectionPage() {
 
   useEffect(() => {
     if (collectionId) fetchMovies();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collectionId]);
 
   async function addMovie() {
@@ -78,7 +74,6 @@ export default function CollectionPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to add movie");
       }
-      // Refetch to show real DB fields (title/genre/year/etc.)
       await fetchMovies();
       setOpen(false);
       setMovUid("");
@@ -95,7 +90,6 @@ export default function CollectionPage() {
     <div className="min-h-screen bg-background text-foreground">
       <Navigation />
 
-      {/* Header */}
       <div className="bg-gradient-to-b from-card/60 to-background border-b border-border">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -119,7 +113,6 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      {/* Actions Bar */}
       <div className="bg-gradient-to-b from-card/40 to-background">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -132,7 +125,6 @@ export default function CollectionPage() {
                 <Play className="h-6 w-6" />
               </Button>
 
-              {/* Add Movie */}
               <Button
                 size="icon"
                 variant="ghost"
@@ -162,14 +154,12 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      {/* Error */}
       {err && (
         <div className="container mx-auto px-4">
           <div className="text-sm text-destructive mb-4">{err}</div>
         </div>
       )}
 
-      {/* Table */}
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-[16px_6fr_2fr_1fr_1fr] gap-4 border-b border-border px-4 py-2 text-sm font-medium text-muted-foreground">
           <div className="text-center">#</div>
@@ -207,10 +197,6 @@ export default function CollectionPage() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded bg-secondary text-2xl">
-                    {/* If you later have poster URLs, replace with <Image /> */}
-                    {movie.poster ? "🖼️" : "🎞️"}
-                  </div>
                   <div>
                     <div className="font-medium text-foreground">
                       {movie.title}
@@ -235,7 +221,6 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      {/* Add Movie Dialog (by mov_uid) */}
       <Dialog open={open} onOpenChange={(v) => !adding && setOpen(v)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

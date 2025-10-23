@@ -26,7 +26,6 @@ export default function SignInPage() {
       const res = await fetch("/api/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // your signin API accepts { id, password }
         body: JSON.stringify({ id, password }),
       });
 
@@ -35,8 +34,7 @@ export default function SignInPage() {
         throw new Error(data?.error || "Sign in failed");
       }
 
-      // cookie is set server-side; now navigate
-      router.replace("/home"); // or "/collections"
+      router.replace("/home");
     } catch (err: any) {
       setError(err?.message ?? "Sign in failed");
     } finally {

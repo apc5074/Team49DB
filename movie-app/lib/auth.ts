@@ -1,4 +1,3 @@
-// lib/auth.ts
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify, JWTPayload } from "jose";
 
@@ -44,9 +43,9 @@ export async function createSession(user: SessionUser, days = 7) {
   });
 }
 
-export function clearSession() {
+export async function clearSession() {
   const c = cookies();
-  c.delete(AUTH_COOKIE);
+  (await c).delete(AUTH_COOKIE);
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {

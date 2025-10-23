@@ -100,10 +100,8 @@ export default function CollectionsPage() {
     if (user) {
       fetchCollections();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // 4) create / rename / delete — now use user.userId
   async function createCollection() {
     if (!user) return;
     const name = newName.trim();
@@ -175,7 +173,6 @@ export default function CollectionsPage() {
     [loading, collections]
   );
 
-  // While we resolve session, show a soft skeleton
   if (sessionLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -194,7 +191,6 @@ export default function CollectionsPage() {
     );
   }
 
-  // If redirected, this won’t render; this protects just in case
   if (!user) return null;
 
   return (
@@ -202,7 +198,6 @@ export default function CollectionsPage() {
       <Navigation />
 
       <main className="container mx-auto px-4 py-10">
-        {/* Header row */}
         <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 mb-8">
           <div className="flex-1">
             <h1 className="text-3xl md:text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
@@ -307,7 +302,6 @@ export default function CollectionsPage() {
         )}
       </main>
 
-      {/* Create Collection Dialog */}
       <Dialog open={open} onOpenChange={(v) => !submitting && setOpen(v)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

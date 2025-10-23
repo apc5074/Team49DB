@@ -5,19 +5,16 @@ import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-// Body: only the name; userId comes from the session
 const CreateCollectionBody = z.object({
   name: z.string().min(1).max(200),
 });
 
 export async function POST(req: Request) {
-  // Require session
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Validate body
   const body = await req.json().catch(() => null);
   const parsed = CreateCollectionBody.safeParse(body);
   if (!parsed.success) {
@@ -43,7 +40,7 @@ export async function POST(req: Request) {
     console.error("POST /api/collections error:", {
       code: err?.code,
       message: err?.message,
-      detail: err?.detail, // <= shows which key/values conflict
+      detail: err?.detail,
       constraint: err?.constraint,
     });
     if (err?.code === "23505") {
@@ -61,7 +58,6 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  // Require session
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

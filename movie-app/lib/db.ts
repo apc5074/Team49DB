@@ -1,9 +1,7 @@
-// lib/db.ts
 import { Pool, QueryResult, QueryResultRow } from "pg";
 import { ensureSshTunnel } from "./sshTunnel";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __pgPool__: Pool | undefined;
 }
 

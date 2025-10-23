@@ -1,4 +1,3 @@
-// app/api/collections/[id]/movies/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { query } from "@/lib/db";
@@ -6,16 +5,15 @@ import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-// GET /api/collections/:id/movies
 export async function GET(
   _req: Request,
-  ctx: { params: Promise<{ id: string }> } // 👈 params is a Promise in Next 15
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const user = await getSessionUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await ctx.params; // 👈 await it
+  const { id } = await ctx.params;
   const collectionId = Number(id);
   if (!Number.isInteger(collectionId) || collectionId <= 0) {
     return NextResponse.json(
@@ -24,7 +22,6 @@ export async function GET(
     );
   }
 
-  // Ensure ownership
   const owns = await query<{ exists: boolean }>(
     `
     SELECT EXISTS (
@@ -42,7 +39,6 @@ export async function GET(
     );
   }
 
-  // Adjust column names if your movies table differs
   const { rows } = await query(
     `
     SELECT
@@ -81,16 +77,15 @@ const AddMovieSchema = z.object({
   movUid: z.number().int().positive(),
 });
 
-// POST /api/collections/:id/movies
 export async function POST(
   req: Request,
-  ctx: { params: Promise<{ id: string }> } // 👈 params is a Promise
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const user = await getSessionUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await ctx.params; // 👈 await it
+  const { id } = await ctx.params;
   const collectionId = Number(id);
   if (!Number.isInteger(collectionId) || collectionId <= 0) {
     return NextResponse.json(
@@ -107,7 +102,6 @@ export async function POST(
   const { movUid } = parsed.data;
 
   try {
-    // Ownership
     const owns = await query<{ exists: boolean }>(
       `
       SELECT EXISTS (
@@ -125,7 +119,6 @@ export async function POST(
       );
     }
 
-    // Movie exists?
     const movieExists = await query<{ exists: boolean }>(
       `
       SELECT EXISTS (
@@ -140,7 +133,6 @@ export async function POST(
       return NextResponse.json({ error: "Movie not found" }, { status: 404 });
     }
 
-    // Link (ignore duplicates)
     await query(
       `
       INSERT INTO p320_49.collection_movies (collection_id, mov_uid)
