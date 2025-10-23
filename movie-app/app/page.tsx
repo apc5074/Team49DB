@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Search, Film, Folder, Star } from "lucide-react";
 import Navigation from "@/components/Navigation";
+import { useSession } from "@/app/hooks/useSession";
 
 export default function Page() {
+  const { signedIn, loading } = useSession();
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navigation />
@@ -12,7 +16,7 @@ export default function Page() {
       <main>
         <section className="relative h-[620px] md:h-[680px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0">
-            {/* /public/hero-banner.jpg (keep it, we’ll mask it to B/W with overlay) */}
+            {/* /public/hero-banner.jpg (keep it, we'll mask it to B/W with overlay) */}
             {/* <Image
               src="/hero-banner.jpg"
               alt="Hero"
@@ -39,19 +43,36 @@ export default function Page() {
               collections
             </p>
 
-            <Link href="/search">
-              <Button
-                size="lg"
-                className="
-                  gap-2 px-6 py-6 rounded-full
-                  bg-foreground text-background
-                  hover:opacity-90 transition-opacity
-                "
-              >
-                <Search className="w-5 h-5" />
-                Start Exploring
-              </Button>
-            </Link>
+            {!loading && (
+              signedIn ? (
+                <Link href="/search">
+                  <Button
+                    size="lg"
+                    className="
+                      gap-2 px-6 py-6 rounded-full
+                      bg-foreground text-background
+                      hover:opacity-90 transition-opacity
+                    "
+                  >
+                    <Search className="w-5 h-5" />
+                    Start Exploring
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/sign-in">
+                  <Button
+                    size="lg"
+                    className="
+                      gap-2 px-6 py-6 rounded-full
+                      bg-foreground text-background
+                      hover:opacity-90 transition-opacity
+                    "
+                  >
+                    Sign In to Start
+                  </Button>
+                </Link>
+              )
+            )}
           </div>
         </section>
 
@@ -108,16 +129,30 @@ export default function Page() {
               Join thousands of movie enthusiasts organizing their favorite
               films
             </p>
-            <Link href="/search">
-              <Button
-                size="lg"
-                variant="secondary"
-                className="gap-2 rounded-full px-6 py-6 border border-foreground/30 bg-transparent text-foreground hover:bg-white hover:text-black transition-colors"
-              >
-                <Search className="w-5 h-5" />
-                Browse Movies Now
-              </Button>
-            </Link>
+            {!loading && (
+              signedIn ? (
+                <Link href="/search">
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    className="gap-2 rounded-full px-6 py-6 border border-foreground/30 bg-transparent text-foreground hover:bg-white hover:text-black transition-colors"
+                  >
+                    <Search className="w-5 h-5" />
+                    Browse Movies Now
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/sign-in">
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    className="gap-2 rounded-full px-6 py-6 border border-foreground/30 bg-transparent text-foreground hover:bg-white hover:text-black transition-colors"
+                  >
+                    Sign In to Browse
+                  </Button>
+                </Link>
+              )
+            )}
           </div>
         </section>
       </main>

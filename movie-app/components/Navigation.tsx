@@ -39,31 +39,32 @@ export default function Navigation() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <Link href="/search">
-            <Button
-              variant={isActive("/search") ? "default" : "ghost"}
-              size="sm"
-              className="gap-2"
-            >
-              <Search className="w-4 h-4" />
-              Search
-            </Button>
-          </Link>
-          
           {signedIn && (
-            <Link href="/collections">
-              <Button
-                variant={isActive("/collections") ? "default" : "ghost"}
-                size="sm"
-                className="gap-2"
-              >
-                <Folder className="w-4 h-4" />
-                Collections
-              </Button>
-            </Link>
+            <>
+              <Link href="/search">
+                <Button
+                  variant={isActive("/search") ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Search className="w-4 h-4" />
+                  Search
+                </Button>
+              </Link>
+              
+              <Link href="/collections">
+                <Button
+                  variant={isActive("/collections") ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Folder className="w-4 h-4" />
+                  Collections
+                </Button>
+              </Link>
+            </>
           )}
 
-          {/* Show different buttons based on sign-in state */}
           {!loading && (
             <>
               {signedIn ? (
