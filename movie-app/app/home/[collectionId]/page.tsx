@@ -146,7 +146,7 @@ export default function CollectionPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Link href="/collections">
+              <Link href="/home">
                 <Button variant="ghost">Back to Collections</Button>
               </Link>
             </div>
