@@ -56,7 +56,6 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     const { payload } = await jwtVerify(token, getSecret(), {
       algorithms: [alg],
     });
-    // minimal runtime check
     if (
       typeof payload.userId === "number" &&
       typeof payload.username === "string" &&
