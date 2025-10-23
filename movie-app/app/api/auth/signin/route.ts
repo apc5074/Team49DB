@@ -6,7 +6,6 @@ import { createSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-// Table/column map
 const TABLE = `p320_49."user"`;
 const COL = {
   userId: "user_id",
@@ -19,7 +18,7 @@ const COL = {
 } as const;
 
 const SignInSchema = z.object({
-  id: z.string().min(1, "Email or username is required").max(254), // email OR username
+  id: z.string().min(1, "Email or username is required").max(254), // email or username
   password: z.string().min(1, "Password is required"),
 });
 

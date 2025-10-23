@@ -55,7 +55,6 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (err: any) {
-    // TEMP: log full details so you can see the exact failure in your dev console
     console.error("POST /api/auth/signup error:", {
       code: err?.code,
       message: err?.message,
@@ -63,9 +62,7 @@ export async function POST(req: Request) {
       table: "p320_49.users",
     });
 
-    // Map common PG errors to human messages
     if (err?.code === "23505") {
-      // unique_violation
       const msg = /email/i.test(err?.detail || err?.constraint || "")
         ? "Email already in use"
         : /username/i.test(err?.detail || err?.constraint || "")
@@ -74,14 +71,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: msg }, { status: 409 });
     }
     if (err?.code === "42P01") {
-      // undefined_table
       return NextResponse.json(
         { error: "Table p320_49.users not found (schema mismatch)." },
         { status: 500 }
       );
     }
     if (err?.code === "42703") {
-      // undefined_column
       return NextResponse.json(
         {
           error: "Column name mismatch in p320_49.users. Verify column names.",
@@ -90,7 +85,6 @@ export async function POST(req: Request) {
       );
     }
     if (err?.code === "23502") {
-      // not_null_violation (often user_id no identity/default)
       return NextResponse.json(
         {
           error:
@@ -100,7 +94,6 @@ export async function POST(req: Request) {
       );
     }
     if (err?.code === "42501") {
-      // insufficient_privilege
       return NextResponse.json(
         {
           error:
