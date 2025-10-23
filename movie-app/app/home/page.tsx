@@ -295,7 +295,7 @@ export default function CollectionsPage() {
                 </div>
 
                 <div className="mt-4">
-                  <Link href={`/collections/${c.collection_id}`}>
+                  <Link href={`/home/${c.collection_id}`}>
                     <Button variant="secondary" className="w-full">
                       Open
                     </Button>
