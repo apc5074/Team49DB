@@ -2,9 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Film, Search, Folder, SquarePen, LogOut, User } from "lucide-react";
+import {
+  Film,
+  Search,
+  Folder,
+  SquarePen,
+  LogOut,
+  User,
+  Users,
+  ChevronDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/app/hooks/useSession";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 
 export default function Navigation() {
@@ -18,9 +33,7 @@ export default function Navigation() {
     setSigningOut(true);
     try {
       const res = await fetch("/api/auth/signout", { method: "POST" });
-      if (res.ok) {
-        window.location.href = "/";
-      }
+      if (res.ok) window.location.href = "/";
     } catch (error) {
       console.error("Sign out failed:", error);
     } finally {
@@ -31,6 +44,7 @@ export default function Navigation() {
   return (
     <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
           <Film className="w-8 h-8 text-primary" />
           <span className="bg-gradient-primary bg-clip-text text-black">
@@ -38,6 +52,7 @@ export default function Navigation() {
           </span>
         </Link>
 
+        {/* Nav Buttons */}
         <div className="flex items-center gap-2">
           {signedIn && (
             <>
@@ -51,8 +66,8 @@ export default function Navigation() {
                   Search
                 </Button>
               </Link>
-              
-              <Link href="/collections">
+
+              <Link href="/home">
                 <Button
                   variant={isActive("/collections") ? "default" : "ghost"}
                   size="sm"
@@ -68,22 +83,38 @@ export default function Navigation() {
           {!loading && (
             <>
               {signedIn ? (
-                <>
-                  <User className="w-4 h-4" />
-                  <span className="hidden sm:inline">{user?.username}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2"
-                    onClick={handleSignOut}
-                    disabled={signingOut}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="hidden sm:inline">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-2 hover:bg-accent/10 transition-all"
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="hidden sm:inline">{user?.username}</span>
+                      <ChevronDown className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/community"
+                        className="flex items-center gap-2"
+                      >
+                        <Users className="w-4 h-4" />
+                        Community
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleSignOut}
+                      disabled={signingOut}
+                      className="flex items-center gap-2 text-destructive"
+                    >
+                      <LogOut className="w-4 h-4" />
                       {signingOut ? "Signing out..." : "Sign Out"}
-                    </span>
-                  </Button>
-                </>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <Link href="/sign-in">
                   <Button
