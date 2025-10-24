@@ -43,7 +43,6 @@ export default function SignUpPage() {
     }
 
     try {
-      // 1) Create the account
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,7 +86,7 @@ export default function SignUpPage() {
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-2 mb-2">
             <Film className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-black">
               Create your CineVault account
             </h1>
           </div>
@@ -201,7 +200,7 @@ export default function SignUpPage() {
       </div>
 
       <p className="text-muted-foreground text-xs mt-8">
-        © 2024 CineVault. All rights reserved.
+        &copy; 2025 CineVault. All rights reserved.
       </p>
     </div>
   );

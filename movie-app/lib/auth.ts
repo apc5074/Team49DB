@@ -44,8 +44,8 @@ export async function createSession(user: SessionUser, days = 7) {
 }
 
 export async function clearSession() {
-  const c = cookies();
-  (await c).delete(AUTH_COOKIE);
+  const c = await cookies();
+  c.delete(AUTH_COOKIE);
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
