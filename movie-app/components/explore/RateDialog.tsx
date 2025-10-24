@@ -18,8 +18,8 @@ import { toast } from "sonner";
 type Props = {
   movieId: number;
   initialRating: number | null;
-  min?: number; // default 1
-  max?: number; // default 10
+  min?: number;
+  max?: number;
 };
 
 export default function RateDialog({

@@ -123,7 +123,6 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
         )}
       </div>
 
-      {/* Additional Info */}
       <div className="grid gap-4 sm:grid-cols-2">
         {movie.age_rating && (
           <div className="rounded-xl border border-border/50 bg-card/40 p-4 backdrop-blur-sm">

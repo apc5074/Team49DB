@@ -34,11 +34,11 @@ export default function WatchButton({
       const res = await fetch(`/api/movie/${movieId}/watch`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // server defaults to NOW()
+        body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error("Failed to update watch");
       toast.success("Marked as watched");
-      router.refresh(); // <- pull fresh user.watched_at from the API
+      router.refresh();
     } catch (err) {
       setIsWatched(optimisticPrev.isWatched);
       setWatchedAt(optimisticPrev.watchedAt);

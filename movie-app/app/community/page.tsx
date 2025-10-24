@@ -145,8 +145,6 @@ export default function CommunityPage() {
   );
 }
 
-/* ---------- helpers ---------- */
-
 function PeopleGrid({
   items,
   loading,
