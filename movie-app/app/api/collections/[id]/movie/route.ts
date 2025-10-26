@@ -42,43 +42,46 @@ export async function GET(
   }
 
   // Fetch movies
-  const res = await query(
-    `
-    SELECT
-      cm.mov_uid                       AS id,
-      m.title                          AS title,
-      m.duration                       AS duration_minutes,
-      m.release_date                   AS release_date,
-      COALESCE(NULLIF(string_agg(DISTINCT g.name, ', '), ''), '—') AS genre
-    FROM p320_49.collection_movies cm
-    JOIN p320_49.movie m
-      ON m.mov_uid = cm.mov_uid
-    LEFT JOIN p320_49.movie_genre mg
-      ON mg.mov_uid = m.mov_uid
-    LEFT JOIN p320_49.genre g
-      ON g.genre_uid = mg.genre_uid
-    WHERE cm.collection_id = $1
-    GROUP BY cm.mov_uid, m.title, m.duration, m.release_date
-    ORDER BY m.title ASC
-    `,
-    [collectionId]
-  );
+const res = await query(
+  `
+  SELECT
+    cm.mov_uid                       AS id,
+    m.title                          AS title,
+    m.duration                       AS duration_minutes,
+    MIN(pr.release_date)              AS earliest_release_date,
+    COALESCE(NULLIF(string_agg(DISTINCT g.name, ', '), ''), '—') AS genre
+  FROM p320_49.collection_movies cm
+  JOIN p320_49.movie m
+    ON m.mov_uid = cm.mov_uid
+  LEFT JOIN p320_49.platform_release pr
+    ON pr.mov_uid = m.mov_uid
+  LEFT JOIN p320_49.movie_genre mg
+    ON mg.mov_uid = m.mov_uid
+  LEFT JOIN p320_49.genre g
+    ON g.genre_uid = mg.genre_uid
+  WHERE cm.collection_id = $1
+  GROUP BY cm.mov_uid, m.title, m.duration
+  ORDER BY m.title ASC
+  `,
+  [collectionId]
+);
   const rows = (res?.rows ?? []) as any[];
 
-  const data = rows.map((r) => {
-    const year = r.release_date
-      ? new Date(r.release_date).getUTCFullYear()
-      : "—";
-    return {
-      id: Number(r.id),
-      title: r.title ?? "(Untitled)",
-      genre: r.genre ?? "—",
-      duration: Number.isInteger(r.duration_minutes)
-        ? `${r.duration_minutes}m`
-        : "—",
-      year,
-    };
-  });
+const data = rows.map((r) => {
+  const year = r.earliest_release_date
+    ? new Date(r.earliest_release_date).getUTCFullYear()
+    : "—";
+  return {
+    id: Number(r.id),
+    title: r.title ?? "(Untitled)",
+    genre: r.genre ?? "—",
+    duration: Number.isInteger(r.duration_minutes)
+      ? `${r.duration_minutes}m`
+      : "—",
+    year,
+  };
+});
+
 
   return NextResponse.json(data, { status: 200 });
 }
