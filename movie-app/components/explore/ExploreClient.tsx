@@ -57,7 +57,7 @@ export default function ExploreClient({
     | "duration"
     | "genre"
     | "studio"
-    | "release_date"; // Changed from release_year to release_date
+    | "release_date"; 
   const order = (sp.get("order") ?? "asc") as "asc" | "desc";
   const page = Number(sp.get("page") ?? "1");
   const pageSize = Number(sp.get("pageSize") ?? "20");
@@ -109,7 +109,7 @@ export default function ExploreClient({
       | "duration"
       | "genre"
       | "studio"
-      | "release_date" // Updated this
+      | "release_date" 
   ) {
     if (sort === key) toggleOrder();
     else update({ sort: key, order: "asc", page: 1 });
@@ -181,7 +181,7 @@ export default function ExploreClient({
               <SelectItem value="title">Title</SelectItem>
               <SelectItem value="genre">Genre</SelectItem>
               <SelectItem value="studio">Studio</SelectItem>
-              <SelectItem value="release_date">Release Date</SelectItem> {/* Updated */}
+              <SelectItem value="release_date">Release Date</SelectItem>
               <SelectItem value="avg_rating">Avg Rating</SelectItem>
               <SelectItem value="duration">Duration</SelectItem>
             </SelectContent>
