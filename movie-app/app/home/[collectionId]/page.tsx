@@ -378,48 +378,52 @@ export default function CollectionPage() {
             </div>
           ) : (
             movies.map((movie, index) => (
-              <div
+              <a
+                href={`/explore/${movie.id}`}
                 key={movie.id}
-                className="group grid grid-cols-[16px_6fr_2fr_1fr_1fr_40px] gap-4 rounded-md px-4 py-2 transition-colors hover:bg-muted/30"
               >
-                <div className="flex items-center justify-center text-sm text-muted-foreground group-hover:text-foreground">
-                  {index + 1}
-                </div>
+                <div
+                  className="group grid grid-cols-[16px_6fr_2fr_1fr_1fr_40px] gap-4 rounded-md px-4 py-2 transition-colors hover:bg-muted/30"
+                >
+                  <div className="flex items-center justify-center text-sm text-muted-foreground group-hover:text-foreground">
+                    {index + 1}
+                  </div>
 
-                <div className="flex items-center gap-4">
-                  <div>
-                    <div className="font-medium text-foreground">
-                      {movie.title}
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <div className="font-medium text-foreground">
+                        {movie.title}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center text-sm text-muted-foreground">
-                  {movie.genre ?? "—"}
-                </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    {movie.genre ?? "—"}
+                  </div>
 
-                <div className="flex items-center text-sm text-muted-foreground">
-                  {movie.duration ?? "—"}
-                </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    {movie.duration ?? "—"}
+                  </div>
 
-                <div className="flex items-center text-sm text-muted-foreground">
-                  {movie.year ?? "—"}
-                </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    {movie.year ?? "—"}
+                  </div>
 
-                <div className="flex items-center justify-end">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    title="Remove from collection"
-                    onClick={() => removeMovie(movie.id)}
-                    disabled={removingId === movie.id}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Remove</span>
-                  </Button>
+                  <div className="flex items-center justify-end">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      title="Remove from collection"
+                      onClick={() => removeMovie(movie.id)}
+                      disabled={removingId === movie.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Remove</span>
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              </a>
             ))
           )}
         </div>
