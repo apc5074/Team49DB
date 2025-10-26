@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navigation from "@/components/Navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -26,7 +26,10 @@ export default function CommunityPage() {
   const [err, setErr] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  // simple client fetch; APIs are session-aware so no userId in query/body
+  const [pending, setPending] = useState<
+    Record<string, "follow" | "unfollow" | undefined>
+  >({});
+
   async function load() {
     setLoading(true);
     setErr(null);
@@ -65,6 +68,74 @@ export default function CommunityPage() {
   const filteredFollowers = followers.filter((u) =>
     normalize(u).includes(query.toLowerCase())
   );
+
+  const followingSet = useMemo(
+    () => new Set(following.map((u) => u.email.toLowerCase())),
+    [following]
+  );
+
+  async function follow(email: string) {
+    const key = email.toLowerCase();
+    if (pending[key]) return;
+    setPending((p) => ({ ...p, [key]: "follow" }));
+    setErr(null);
+
+    const existing = followers.find((u) => u.email.toLowerCase() === key);
+    const prevFollowing = following;
+    if (existing && !followingSet.has(key)) {
+      setFollowing((f) => [existing, ...f]);
+    }
+
+    try {
+      const res = await fetch("/api/follows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to follow");
+      }
+    } catch (e: any) {
+      setFollowing(prevFollowing);
+      setErr(e?.message || "Failed to follow");
+    } finally {
+      setPending((p) => {
+        const { [key]: _, ...rest } = p;
+        return rest;
+      });
+    }
+  }
+
+  async function unfollow(email: string) {
+    const key = email.toLowerCase();
+    if (pending[key]) return;
+    setPending((p) => ({ ...p, [key]: "unfollow" }));
+    setErr(null);
+
+    const prevFollowing = following;
+    setFollowing((f) => f.filter((u) => u.email.toLowerCase() !== key));
+
+    try {
+      const res = await fetch("/api/follows", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to unfollow");
+      }
+    } catch (e: any) {
+      setFollowing(prevFollowing);
+      setErr(e?.message || "Failed to unfollow");
+    } finally {
+      setPending((p) => {
+        const { [key]: _, ...rest } = p;
+        return rest;
+      });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -128,6 +199,18 @@ export default function CommunityPage() {
               items={filteredFollowing}
               loading={loading}
               emptyLabel="You're not following anyone yet."
+              renderActions={(u) => (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => unfollow(u.email)}
+                  disabled={pending[u.email.toLowerCase()] === "unfollow"}
+                >
+                  {pending[u.email.toLowerCase()] === "unfollow"
+                    ? "Removing…"
+                    : "Unfollow"}
+                </Button>
+              )}
             />
           </TabsContent>
 
@@ -137,6 +220,31 @@ export default function CommunityPage() {
               items={filteredFollowers}
               loading={loading}
               emptyLabel="No one is following you yet."
+              renderActions={(u) => {
+                const isFollowing = followingSet.has(u.email.toLowerCase());
+                const pend = pending[u.email.toLowerCase()];
+                if (isFollowing) {
+                  return (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => unfollow(u.email)}
+                      disabled={pend === "unfollow"}
+                    >
+                      {pend === "unfollow" ? "Removing…" : "Unfollow"}
+                    </Button>
+                  );
+                }
+                return (
+                  <Button
+                    size="sm"
+                    onClick={() => follow(u.email)}
+                    disabled={pend === "follow"}
+                  >
+                    {pend === "follow" ? "Following…" : "Follow back"}
+                  </Button>
+                );
+              }}
             />
           </TabsContent>
         </Tabs>
@@ -149,10 +257,12 @@ function PeopleGrid({
   items,
   loading,
   emptyLabel,
+  renderActions,
 }: {
   items: CommunityUser[];
   loading: boolean;
   emptyLabel: string;
+  renderActions?: (u: CommunityUser) => React.ReactNode;
 }) {
   if (loading) {
     return (
@@ -200,15 +310,18 @@ function PeopleGrid({
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0 flex items-center justify-between">
+          <CardContent className="pt-0 flex items-center justify-between gap-2">
             <span className="text-xs text-muted-foreground truncate">
               {u.email}
             </span>
-            <Link href={`/profile/${u.user_id}`}>
-              <Button variant="secondary" size="sm">
-                View
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href={`/profile/${u.user_id}`}>
+                <Button variant="ghost" size="sm">
+                  View
+                </Button>
+              </Link>
+              {renderActions?.(u)}
+            </div>
           </CardContent>
         </Card>
       ))}
