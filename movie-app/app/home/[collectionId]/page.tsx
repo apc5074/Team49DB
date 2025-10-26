@@ -196,6 +196,10 @@ export default function CollectionPage() {
 
   const count = useMemo(() => movies.length, [movies]);
 
+  const totalDuration = useMemo<number>(() => {
+    return movies.reduce((accumulator, currentMovie) => currentMovie.duration ? accumulator + parseInt(currentMovie.duration) : accumulator, 0);
+  }, [movies]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navigation />
@@ -219,6 +223,8 @@ export default function CollectionPage() {
             <span className="font-semibold text-foreground">You</span>
             <span>•</span>
             <span>{count} movies</span>
+            <span>•</span>
+            <span>Total Duration: {totalDuration} mins</span>
           </div>
         </div>
       </div>
