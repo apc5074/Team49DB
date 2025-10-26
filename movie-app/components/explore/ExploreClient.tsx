@@ -25,8 +25,8 @@ type ExploreRow = {
   genres: string[];
   directors: string[];
   cast: string[];
-  studios: string[]; // NEW
-  // release_year?: number; // ← later
+  studios: string[];
+  earliest_release_date: string | null;
 };
 
 type ExploreResponse = {
@@ -56,8 +56,8 @@ export default function ExploreClient({
     | "avg_rating"
     | "duration"
     | "genre"
-    | "studio";
-  // | "release_year";
+    | "studio"
+    | "release_year";
   const order = (sp.get("order") ?? "asc") as "asc" | "desc";
   const page = Number(sp.get("page") ?? "1");
   const pageSize = Number(sp.get("pageSize") ?? "20");
@@ -108,11 +108,22 @@ export default function ExploreClient({
       | "avg_rating"
       | "duration"
       | "genre"
-      | "studio" /* | "release_year" */
+      | "studio"
+      | "release_year"
   ) {
     if (sort === key) toggleOrder();
     else update({ sort: key, order: "asc", page: 1 });
   }
+
+  // Helper function to extract year from date
+  const getReleaseYear = (dateString: string | null) => {
+    if (!dateString) return "—";
+    try {
+      return new Date(dateString).getFullYear().toString();
+    } catch {
+      return "—";
+    }
+  };
 
   return (
     <section className="space-y-6">
@@ -166,7 +177,7 @@ export default function ExploreClient({
               <SelectItem value="title">Title</SelectItem>
               <SelectItem value="genre">Genre</SelectItem>
               <SelectItem value="studio">Studio</SelectItem>
-              {/* <SelectItem value="release_year">Release Year</SelectItem> */}
+              <SelectItem value="release_year">Release Year</SelectItem>
               <SelectItem value="avg_rating">Avg Rating</SelectItem>
               <SelectItem value="duration">Duration</SelectItem>
             </SelectContent>
@@ -188,36 +199,25 @@ export default function ExploreClient({
       </div>
 
       <div className="rounded-xl border border-border bg-card/60">
-        <div className="grid grid-cols-12 px-4 py-3 text-xs text-muted-foreground">
-          <button
-            className="text-left col-span-3 font-medium"
-            onClick={() => onHeaderSort("title")}
-          >
+        {/* Header - Fixed column distribution */}
+        <div className="grid grid-cols-12 px-4 py-3 text-xs text-muted-foreground gap-2">
+          <button className="text-left col-span-3 font-medium" onClick={() => onHeaderSort("title")}>
             Title
           </button>
-          <div className="col-span-3">Directors</div>
-          <button
-            className="text-left col-span-2 font-medium"
-            onClick={() => onHeaderSort("genre")}
-          >
+          <div className="col-span-2">Directors</div>
+          <button className="text-left col-span-2 font-medium" onClick={() => onHeaderSort("genre")}>
             Genre
           </button>
-          <button
-            className="text-left col-span-2 font-medium"
-            onClick={() => onHeaderSort("studio")}
-          >
+          <button className="text-left col-span-2 font-medium" onClick={() => onHeaderSort("studio")}>
             Studio
           </button>
-          <button
-            className="text-left col-span-1 font-medium"
-            onClick={() => onHeaderSort("duration")}
-          >
+          <button className="text-left col-span-1 font-medium text-center" onClick={() => onHeaderSort("release_year")}>
+            Year
+          </button>
+          <button className="text-left col-span-1 font-medium text-center" onClick={() => onHeaderSort("duration")}>
             Length
           </button>
-          <button
-            className="text-left col-span-1 font-medium"
-            onClick={() => onHeaderSort("avg_rating")}
-          >
+          <button className="text-left col-span-1 font-medium text-center" onClick={() => onHeaderSort("avg_rating")}>
             Rating
           </button>
         </div>
@@ -236,36 +236,47 @@ export default function ExploreClient({
             {data.items.map((m) => (
               <li
                 key={m.mov_uid}
-                className="px-4 py-4 grid grid-cols-12 gap-3 items-start"
+                className="px-4 py-4 grid grid-cols-12 gap-2 items-center hover:bg-muted/50 transition-colors"
               >
+                {/* Title */}
                 <div className="col-span-3">
-                  <a
-                    href={`/explore/${m.mov_uid}`}
-                    className="font-medium hover:underline"
-                  >
+                  <div className="font-medium text-sm truncate" title={m.title}>
                     {m.title}
-                  </a>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {m.genres.slice(0, 3).map((g) => (
-                      <Badge key={`${m.mov_uid}-${g}`} variant="secondary">
-                        {g}
-                      </Badge>
-                    ))}
                   </div>
+                  {m.age_rating && (
+                    <Badge variant="secondary" className="text-xs mt-1">
+                      {m.age_rating}
+                    </Badge>
+                  )}
                 </div>
-                <div className="col-span-3 text-sm">
+
+                {/* Directors */}
+                <div className="col-span-2 text-sm text-muted-foreground truncate" title={m.directors.join(", ")}>
                   {m.directors.length ? m.directors.join(", ") : "—"}
                 </div>
-                <div className="col-span-2 text-sm">
+
+                {/* Genres */}
+                <div className="col-span-2 text-sm truncate" title={m.genres.join(", ")}>
                   {m.genres.length ? m.genres.join(", ") : "—"}
                 </div>
-                <div className="col-span-2 text-sm">
+
+                {/* Studios */}
+                <div className="col-span-2 text-sm text-muted-foreground truncate" title={m.studios.join(", ")}>
                   {m.studios.length ? m.studios.join(", ") : "—"}
                 </div>
-                <div className="col-span-1 text-sm">
-                  {m.duration != null ? `${m.duration} min` : "—"}
+
+                {/* Release Year */}
+                <div className="col-span-1 text-sm text-center">
+                  {getReleaseYear(m.earliest_release_date)}
                 </div>
-                <div className="col-span-1 text-sm">
+
+                {/* Duration */}
+                <div className="col-span-1 text-sm text-center">
+                  {m.duration != null ? `${m.duration}m` : "—"}
+                </div>
+
+                {/* Rating */}
+                <div className="col-span-1 text-sm text-center font-medium">
                   {m.avg_rating != null ? m.avg_rating.toFixed(1) : "—"}
                 </div>
               </li>

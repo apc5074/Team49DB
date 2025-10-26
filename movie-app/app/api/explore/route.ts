@@ -15,7 +15,7 @@ type Row = {
   directors: string[];
   cast: string[];
   studios: string[];
-  // release_year?: number; // ← enable later when you expose year
+  earliest_release_date: string | null;
 };
 
 const ALLOWED_SORT = new Set([
@@ -129,26 +129,31 @@ export async function GET(req: Request) {
 
     const dataRes = await query<Row>(
       `
-      WITH base AS (
-        SELECT
-          m.mov_uid,
-          m.title,
-          m.duration,
-          m.age_rating,
-          (
-            SELECT COALESCE(AVG(r.rating_value), 0)::float
-            FROM p320_49.rates r
-            WHERE r.mov_uid = m.mov_uid
-          ) AS avg_rating,
-          (
-            SELECT COUNT(*)::int
-            FROM p320_49.rates r
-            WHERE r.mov_uid = m.mov_uid
-          ) AS rating_count
-          -- , EXTRACT(YEAR FROM m.release_date)::int AS release_year -- ← enable later
-        FROM movie m
-        ${whereSql}
-      ),
+WITH base AS (
+  SELECT
+    m.mov_uid,
+    m.title,
+    m.duration,
+    m.age_rating,
+    (
+      SELECT COALESCE(AVG(r.rating_value), 0)::float
+      FROM p320_49.rates r
+      WHERE r.mov_uid = m.mov_uid
+    ) AS avg_rating,
+    (
+      SELECT COUNT(*)::int
+      FROM p320_49.rates r
+      WHERE r.mov_uid = m.mov_uid
+    ) AS rating_count,
+    (
+      SELECT MIN(pr.release_date)
+      FROM platform_release pr
+      WHERE pr.mov_uid = m.mov_uid
+    ) AS earliest_release_date
+  FROM movie m
+  ${whereSql}
+),
+
       genres AS (
         SELECT mg.mov_uid, ARRAY_AGG(DISTINCT g.name ORDER BY g.name) AS genres
         FROM movie_genre mg
@@ -184,6 +189,7 @@ export async function GET(req: Request) {
         b.age_rating,
         b.avg_rating,
         b.rating_count,
+        b.earliest_release_date,
         COALESCE(g.genres, ARRAY[]::text[]) AS genres,
         COALESCE(d.directors, ARRAY[]::text[]) AS directors,
         COALESCE(cm.cast_names, ARRAY[]::text[]) AS cast,
