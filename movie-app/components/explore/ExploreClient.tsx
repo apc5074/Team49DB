@@ -57,7 +57,7 @@ export default function ExploreClient({
     | "duration"
     | "genre"
     | "studio"
-    | "release_year";
+    | "release_date"; // Changed from release_year to release_date
   const order = (sp.get("order") ?? "asc") as "asc" | "desc";
   const page = Number(sp.get("page") ?? "1");
   const pageSize = Number(sp.get("pageSize") ?? "20");
@@ -109,17 +109,21 @@ export default function ExploreClient({
       | "duration"
       | "genre"
       | "studio"
-      | "release_year"
+      | "release_date" // Updated this
   ) {
     if (sort === key) toggleOrder();
     else update({ sort: key, order: "asc", page: 1 });
   }
 
-  // Helper function to extract year from date
-  const getReleaseYear = (dateString: string | null) => {
+  // Helper function to format date
+  const formatReleaseDate = (dateString: string | null) => {
     if (!dateString) return "—";
     try {
-      return new Date(dateString).getFullYear().toString();
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
     } catch {
       return "—";
     }
@@ -177,7 +181,7 @@ export default function ExploreClient({
               <SelectItem value="title">Title</SelectItem>
               <SelectItem value="genre">Genre</SelectItem>
               <SelectItem value="studio">Studio</SelectItem>
-              <SelectItem value="release_year">Release Year</SelectItem>
+              <SelectItem value="release_date">Release Date</SelectItem> {/* Updated */}
               <SelectItem value="avg_rating">Avg Rating</SelectItem>
               <SelectItem value="duration">Duration</SelectItem>
             </SelectContent>
@@ -199,7 +203,7 @@ export default function ExploreClient({
       </div>
 
       <div className="rounded-xl border border-border bg-card/60">
-        {/* Header - Fixed column distribution */}
+        {/* Header */}
         <div className="grid grid-cols-12 px-4 py-3 text-xs text-muted-foreground gap-2">
           <button className="text-left col-span-3 font-medium" onClick={() => onHeaderSort("title")}>
             Title
@@ -211,8 +215,8 @@ export default function ExploreClient({
           <button className="text-left col-span-2 font-medium" onClick={() => onHeaderSort("studio")}>
             Studio
           </button>
-          <button className="text-left col-span-1 font-medium text-center" onClick={() => onHeaderSort("release_year")}>
-            Year
+          <button className="text-left col-span-1 font-medium text-center" onClick={() => onHeaderSort("release_date")}>
+            Release Date
           </button>
           <button className="text-left col-span-1 font-medium text-center" onClick={() => onHeaderSort("duration")}>
             Length
@@ -265,9 +269,9 @@ export default function ExploreClient({
                   {m.studios.length ? m.studios.join(", ") : "—"}
                 </div>
 
-                {/* Release Year */}
-                <div className="col-span-1 text-sm text-center">
-                  {getReleaseYear(m.earliest_release_date)}
+                {/* Release Date */}
+                <div className="col-span-1 text-sm text-center whitespace-nowrap">
+                  {formatReleaseDate(m.earliest_release_date)}
                 </div>
 
                 {/* Duration */}

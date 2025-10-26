@@ -24,7 +24,7 @@ const ALLOWED_SORT = new Set([
   "duration",
   "genre",
   "studio",
-  // "release_year", // ← enable when you add it
+  "release_date", // ← Add release_date here
 ]);
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -194,7 +194,6 @@ WITH base AS (
         COALESCE(d.directors, ARRAY[]::text[]) AS directors,
         COALESCE(cm.cast_names, ARRAY[]::text[]) AS cast,
         COALESCE(s.studios, ARRAY[]::text[]) AS studios
-        -- , b.release_year
       FROM base b
       LEFT JOIN genres g        ON g.mov_uid = b.mov_uid
       LEFT JOIN directors d     ON d.mov_uid = b.mov_uid
@@ -212,7 +211,9 @@ WITH base AS (
             ? `(CASE WHEN g.genres IS NULL OR array_length(g.genres,1)=0 THEN NULL ELSE g.genres[1] END) ${order} NULLS LAST, b.title ASC`
             : sortCol === "studio"
             ? `(CASE WHEN s.studios IS NULL OR array_length(s.studios,1)=0 THEN NULL ELSE s.studios[1] END) ${order} NULLS LAST, b.title ASC`
-            : /* release_year */ "b.title ASC"
+            : sortCol === "release_date"
+            ? `b.earliest_release_date ${order} NULLS LAST, b.title ASC`
+            : "b.title ASC"
         }
       LIMIT $${p} OFFSET $${p + 1}
       `,
