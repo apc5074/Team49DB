@@ -1,4 +1,3 @@
-// app/api/auth/signup/route.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
@@ -7,7 +6,6 @@ import { query } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-// Validation schema
 const SignUpSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
@@ -23,7 +21,6 @@ const SignUpSchema = z.object({
     .max(256),
 });
 
-// Helper to read body as JSON or FormData
 async function readBody(
   req: NextRequest | Request
 ): Promise<Record<string, unknown> | null> {
@@ -40,7 +37,6 @@ async function readBody(
       const form = await (req as NextRequest).formData();
       return Object.fromEntries(form.entries());
     }
-    // Attempt JSON by default if unspecified
     const json = await req.json().catch(() => null);
     return typeof json === "object" && json ? json : null;
   } catch {
@@ -48,7 +44,6 @@ async function readBody(
   }
 }
 
-// Normalize/trim incoming values before validation
 function normalize(input: Record<string, unknown>) {
   const pick = (k: string) =>
     typeof input[k] === "string" ? String(input[k]).trim() : input[k];
@@ -62,7 +57,6 @@ function normalize(input: Record<string, unknown>) {
 }
 
 export async function POST(req: NextRequest) {
-  // 1) Read + normalize
   const raw = await readBody(req);
   if (!raw) {
     return NextResponse.json(
@@ -72,7 +66,6 @@ export async function POST(req: NextRequest) {
   }
   const body = normalize(raw);
 
-  // 2) Validate
   const parsed = SignUpSchema.safeParse(body);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => ({
@@ -88,10 +81,8 @@ export async function POST(req: NextRequest) {
   const { firstName, lastName, email, username, password } = parsed.data;
 
   try {
-    // 3) Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // 4) Insert (table assumed to be p320_49.users — change if yours is "user" -> p320_49."user")
     const { rows } = await query<{ user_id: number }>(
       `
       INSERT INTO p320_49.user
@@ -103,7 +94,6 @@ export async function POST(req: NextRequest) {
       [firstName, lastName, email, username, passwordHash]
     );
 
-    // 5) Success
     return NextResponse.json(
       {
         ok: true,
