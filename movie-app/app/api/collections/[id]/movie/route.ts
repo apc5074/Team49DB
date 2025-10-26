@@ -5,7 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-// ---------- GET: list movies in a collection ----------
+// ---------- GET: list movies in a collection (year from earliest platform_release) ----------
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -41,52 +41,51 @@ export async function GET(
     );
   }
 
-  // Fetch movies
-const res = await query(
-  `
-  SELECT
-    cm.mov_uid                       AS id,
-    m.title                          AS title,
-    m.duration                       AS duration_minutes,
-    MIN(pr.release_date)              AS earliest_release_date,
-    COALESCE(NULLIF(string_agg(DISTINCT g.name, ', '), ''), '—') AS genre
-  FROM p320_49.collection_movies cm
-  JOIN p320_49.movie m
-    ON m.mov_uid = cm.mov_uid
-  LEFT JOIN p320_49.platform_release pr
-    ON pr.mov_uid = m.mov_uid
-  LEFT JOIN p320_49.movie_genre mg
-    ON mg.mov_uid = m.mov_uid
-  LEFT JOIN p320_49.genre g
-    ON g.genre_uid = mg.genre_uid
-  WHERE cm.collection_id = $1
-  GROUP BY cm.mov_uid, m.title, m.duration
-  ORDER BY m.title ASC
-  `,
-  [collectionId]
-);
+  // Fetch movies with earliest platform release date
+  const res = await query(
+    `
+    SELECT
+      cm.mov_uid                       AS id,
+      m.title                          AS title,
+      m.duration                       AS duration_minutes,
+      MIN(pr.release_date)             AS earliest_release_date,
+      COALESCE(NULLIF(string_agg(DISTINCT g.name, ', '), ''), '—') AS genre
+    FROM p320_49.collection_movies cm
+    JOIN p320_49.movie m
+      ON m.mov_uid = cm.mov_uid
+    LEFT JOIN p320_49.platform_release pr
+      ON pr.mov_uid = m.mov_uid
+    LEFT JOIN p320_49.movie_genre mg
+      ON mg.mov_uid = m.mov_uid
+    LEFT JOIN p320_49.genre g
+      ON g.genre_uid = mg.genre_uid
+    WHERE cm.collection_id = $1
+    GROUP BY cm.mov_uid, m.title, m.duration
+    ORDER BY m.title ASC
+    `,
+    [collectionId]
+  );
   const rows = (res?.rows ?? []) as any[];
 
-const data = rows.map((r) => {
-  const year = r.earliest_release_date
-    ? new Date(r.earliest_release_date).getUTCFullYear()
-    : "—";
-  return {
-    id: Number(r.id),
-    title: r.title ?? "(Untitled)",
-    genre: r.genre ?? "—",
-    duration: Number.isInteger(r.duration_minutes)
-      ? `${r.duration_minutes}m`
-      : "—",
-    year,
-  };
-});
-
+  const data = rows.map((r) => {
+    const year = r.earliest_release_date
+      ? new Date(r.earliest_release_date).getUTCFullYear()
+      : "—";
+    return {
+      id: Number(r.id),
+      title: r.title ?? "(Untitled)",
+      genre: r.genre ?? "—",
+      duration: Number.isInteger(r.duration_minutes)
+        ? `${r.duration_minutes}m`
+        : "—",
+      year,
+    };
+  });
 
   return NextResponse.json(data, { status: 200 });
 }
 
-// ---------- POST: add movie by movUid or title ----------
+// ---------- POST: add movie by movUid or by title (+ optional year) ----------
 const AddById = z.object({
   movUid: z.number().int().positive(),
 });
@@ -110,16 +109,22 @@ async function lookupMovUidByTitle(
   if (!title) return { ok: false, code: 404, message: "Empty title" };
 
   if (year) {
+    // Exact title, filter by earliest platform release year via HAVING
     const res = await query<{
       mov_uid: number;
       title: string;
       release_year: number | null;
     }>(
       `
-      SELECT m.mov_uid, m.title, EXTRACT(YEAR FROM m.release_date)::int AS release_year
+      SELECT
+        m.mov_uid,
+        m.title,
+        EXTRACT(YEAR FROM MIN(pr.release_date))::int AS release_year
       FROM p320_49.movie m
+      LEFT JOIN p320_49.platform_release pr ON pr.mov_uid = m.mov_uid
       WHERE lower(m.title) = lower($1)
-        AND EXTRACT(YEAR FROM m.release_date) = $2
+      GROUP BY m.mov_uid, m.title
+      HAVING EXTRACT(YEAR FROM MIN(pr.release_date)) = $2
       LIMIT 10
       `,
       [title, year]
@@ -148,35 +153,49 @@ async function lookupMovUidByTitle(
     return { ok: true, movUid: rows[0].mov_uid };
   }
 
-  // No year: try exact, then fuzzy
+  // No year: try exact title first, then fuzzy by title;
+  // order by earliest platform release date (desc)
   const exactRes = await query<{
     mov_uid: number;
     title: string;
     release_year: number | null;
+    earliest_release: string | null;
   }>(
     `
-    SELECT m.mov_uid, m.title, EXTRACT(YEAR FROM m.release_date)::int AS release_year
+    SELECT
+      m.mov_uid,
+      m.title,
+      EXTRACT(YEAR FROM MIN(pr.release_date))::int AS release_year,
+      MIN(pr.release_date) AS earliest_release
     FROM p320_49.movie m
+    LEFT JOIN p320_49.platform_release pr ON pr.mov_uid = m.mov_uid
     WHERE lower(m.title) = lower($1)
-    ORDER BY m.release_date DESC NULLS LAST
+    GROUP BY m.mov_uid, m.title
+    ORDER BY earliest_release DESC NULLS LAST
     LIMIT 10
     `,
     [title]
   );
-  const exactRows = exactRes?.rows ?? [];
+  let rowsToUse = exactRes?.rows ?? [];
 
-  let rowsToUse = exactRows;
   if (rowsToUse.length === 0) {
     const fuzzyRes = await query<{
       mov_uid: number;
       title: string;
       release_year: number | null;
+      earliest_release: string | null;
     }>(
       `
-      SELECT m.mov_uid, m.title, EXTRACT(YEAR FROM m.release_date)::int AS release_year
+      SELECT
+        m.mov_uid,
+        m.title,
+        EXTRACT(YEAR FROM MIN(pr.release_date))::int AS release_year,
+        MIN(pr.release_date) AS earliest_release
       FROM p320_49.movie m
+      LEFT JOIN p320_49.platform_release pr ON pr.mov_uid = m.mov_uid
       WHERE m.title ILIKE '%' || $1 || '%'
-      ORDER BY m.release_date DESC NULLS LAST
+      GROUP BY m.mov_uid, m.title
+      ORDER BY earliest_release DESC NULLS LAST
       LIMIT 10
       `,
       [title]

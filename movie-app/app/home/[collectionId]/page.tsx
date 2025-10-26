@@ -57,6 +57,12 @@ export default function CollectionPage() {
 
   const [removingId, setRemovingId] = useState<number | null>(null);
 
+  // Watch-all state
+  const [watching, setWatching] = useState(false);
+  const [watchedOk, setWatchedOk] = useState(0);
+  const [watchedTotal, setWatchedTotal] = useState(0);
+  const [watchFailures, setWatchFailures] = useState<number[]>([]);
+
   async function fetchMovies() {
     setLoading(true);
     setErr(null);
@@ -110,7 +116,6 @@ export default function CollectionPage() {
       });
 
       if (res.status === 409) {
-        // Multiple matches – show choices
         const data = await res.json().catch(() => ({}));
         const cs: Choice[] = Array.isArray(data?.choices) ? data.choices : [];
         if (!cs.length)
@@ -119,7 +124,7 @@ export default function CollectionPage() {
           );
         setChoices(cs);
         setPicking(true);
-        return; // keep dialog open for picking
+        return;
       }
 
       if (!res.ok) {
@@ -137,7 +142,6 @@ export default function CollectionPage() {
   }
 
   async function pickChoice(movUid: number) {
-    // finalize by explicit movUid
     setErr(null);
     setAdding(true);
     try {
@@ -194,10 +198,68 @@ export default function CollectionPage() {
     }
   }
 
+  // ---- Watch-All ----
+  async function watchAll() {
+    if (movies.length === 0) {
+      setErr("This collection is empty.");
+      return;
+    }
+    setErr(null);
+    setWatching(true);
+    setWatchedOk(0);
+    setWatchedTotal(movies.length);
+    setWatchFailures([]);
+
+    // small concurrency to be kind to the server
+    const ids = movies.map((m) => m.id);
+    const concurrency = 5;
+
+    let ok = 0;
+    const fails: number[] = [];
+
+    async function runBatch(batch: number[]) {
+      await Promise.all(
+        batch.map(async (id) => {
+          try {
+            const res = await fetch(`/api/movie/${id}/watch`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({}), // date is optional; backend defaults to NOW()
+            });
+            if (!res.ok) throw new Error(await res.text());
+            ok += 1;
+            setWatchedOk((x) => x + 1);
+          } catch {
+            fails.push(id);
+            setWatchFailures((xs) => [...xs, id]);
+          }
+        })
+      );
+    }
+
+    for (let i = 0; i < ids.length; i += concurrency) {
+      const batch = ids.slice(i, i + concurrency);
+      await runBatch(batch);
+    }
+
+    setWatching(false);
+
+    if (fails.length) {
+      setErr(
+        `Watched ${ok}/${ids.length}. Failed for: ${fails
+          .slice(0, 5)
+          .join(", ")}${fails.length > 5 ? "…" : ""}`
+      );
+    }
+  }
+
   const count = useMemo(() => movies.length, [movies]);
 
   const totalDuration = useMemo<number>(() => {
-    return movies.reduce((accumulator, currentMovie) => currentMovie.duration ? accumulator + parseInt(currentMovie.duration) : accumulator, 0);
+    return movies.reduce(
+      (acc, cur) => (cur.duration ? acc + parseInt(cur.duration) : acc),
+      0
+    );
   }, [movies]);
 
   return (
@@ -225,6 +287,14 @@ export default function CollectionPage() {
             <span>{count} movies</span>
             <span>•</span>
             <span>Total Duration: {totalDuration} mins</span>
+            {watching && (
+              <>
+                <span>•</span>
+                <span>
+                  Watching… {watchedOk}/{watchedTotal}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -237,6 +307,9 @@ export default function CollectionPage() {
                 size="icon"
                 variant="default"
                 className="h-14 w-14 rounded-full"
+                title="Watch all movies in this collection"
+                onClick={watchAll}
+                disabled={watching || loading || movies.length === 0}
               >
                 <Play className="h-6 w-6" />
               </Button>
