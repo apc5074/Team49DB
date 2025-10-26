@@ -415,7 +415,11 @@ export default function CollectionPage() {
                       variant="ghost"
                       className="h-8 w-8"
                       title="Remove from collection"
-                      onClick={() => removeMovie(movie.id)}
+                      onClick={(e) => {
+                        e.preventDefault(); // stop the <a> from navigating
+                        e.stopPropagation(); // stop the event from bubbling up
+                        removeMovie(movie.id)
+                      }}
                       disabled={removingId === movie.id}
                     >
                       <Trash2 className="h-4 w-4" />
