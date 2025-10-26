@@ -15,7 +15,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Play, Plus, MoreHorizontal, Clock, Folder } from "lucide-react";
+import {
+  Play,
+  Plus,
+  MoreHorizontal,
+  Clock,
+  Folder,
+  Trash2,
+} from "lucide-react";
 
 type MovieRow = {
   id: number;
@@ -34,6 +41,8 @@ export default function CollectionPage() {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [movUid, setMovUid] = useState<string>("");
+
+  const [removingId, setRemovingId] = useState<number | null>(null);
 
   async function fetchMovies() {
     setLoading(true);
@@ -81,6 +90,32 @@ export default function CollectionPage() {
       setErr(e?.message || "Failed to add movie");
     } finally {
       setAdding(false);
+    }
+  }
+
+  async function removeMovie(id: number) {
+    if (!Number.isInteger(id) || id <= 0) return;
+    setErr(null);
+    setRemovingId(id);
+
+    const prev = movies;
+    setMovies((m) => m.filter((row) => row.id !== id));
+
+    try {
+      const res = await fetch(
+        `/api/collections/${collectionId}/movie?movUid=${id}`,
+        { method: "DELETE" }
+      );
+
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to remove movie");
+      }
+    } catch (e: any) {
+      setMovies(prev);
+      setErr(e?.message || "Failed to remove movie");
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -161,7 +196,7 @@ export default function CollectionPage() {
       )}
 
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-[16px_6fr_2fr_1fr_1fr] gap-4 border-b border-border px-4 py-2 text-sm font-medium text-muted-foreground">
+        <div className="grid grid-cols-[16px_6fr_2fr_1fr_1fr_40px] gap-4 border-b border-border px-4 py-2 text-sm font-medium text-muted-foreground">
           <div className="text-center">#</div>
           <div>Title</div>
           <div>Genre</div>
@@ -170,6 +205,7 @@ export default function CollectionPage() {
             Duration
           </div>
           <div>Year</div>
+          <div className="text-right"> </div>
         </div>
 
         <div className="pb-10">
@@ -190,7 +226,7 @@ export default function CollectionPage() {
             movies.map((movie, index) => (
               <div
                 key={movie.id}
-                className="group grid grid-cols-[16px_6fr_2fr_1fr_1fr] gap-4 rounded-md px-4 py-2 transition-colors hover:bg-muted/30"
+                className="group grid grid-cols-[16px_6fr_2fr_1fr_1fr_40px] gap-4 rounded-md px-4 py-2 transition-colors hover:bg-muted/30"
               >
                 <div className="flex items-center justify-center text-sm text-muted-foreground group-hover:text-foreground">
                   {index + 1}
@@ -214,6 +250,20 @@ export default function CollectionPage() {
 
                 <div className="flex items-center text-sm text-muted-foreground">
                   {movie.year ?? "—"}
+                </div>
+
+                <div className="flex items-center justify-end">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    title="Remove from collection"
+                    onClick={() => removeMovie(movie.id)}
+                    disabled={removingId === movie.id}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Remove</span>
+                  </Button>
                 </div>
               </div>
             ))

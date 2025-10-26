@@ -1,3 +1,4 @@
+// app/api/collections/[id]/movies/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { query } from "@/lib/db";
@@ -5,6 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
+// ---------- GET: list movies in a collection ----------
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -22,6 +24,7 @@ export async function GET(
     );
   }
 
+  // Ownership check
   const owns = await query<{ exists: boolean }>(
     `
     SELECT EXISTS (
@@ -39,14 +42,15 @@ export async function GET(
     );
   }
 
+  // Fetch movies; compute year from release_date
   const { rows } = await query(
     `
     SELECT
-      cm.mov_uid AS id,
-      m.title    AS title,
-      COALESCE(NULLIF(string_agg(DISTINCT g.name, ', '), ''), '—') AS genre,
-      m.duration AS duration,
-      m.release_date AS release_date
+      cm.mov_uid                       AS id,
+      m.title                          AS title,
+      m.duration                       AS duration_minutes,       -- integer minutes (assumed)
+      m.release_date                   AS release_date,
+      COALESCE(NULLIF(string_agg(DISTINCT g.name, ', '), ''), '—') AS genre
     FROM p320_49.collection_movies cm
     JOIN p320_49.movie m
       ON m.mov_uid = cm.mov_uid
@@ -61,18 +65,25 @@ export async function GET(
     [collectionId]
   );
 
-  const data = rows.map((r: any) => ({
-    id: Number(r.id),
-    title: r.title ?? "(Untitled)",
-    genre: r.genre ?? "—",
-    duration: r.runtime_minutes != null ? `${r.runtime_minutes}m` : "—",
-    year: r.year ?? "—",
-    poster: r.poster ?? "",
-  }));
+  const data = rows.map((r: any) => {
+    const year = r.release_date
+      ? new Date(r.release_date).getUTCFullYear()
+      : "—";
+    return {
+      id: Number(r.id),
+      title: r.title ?? "(Untitled)",
+      genre: r.genre ?? "—",
+      duration: Number.isInteger(r.duration_minutes)
+        ? `${r.duration_minutes}m`
+        : "—",
+      year,
+    };
+  });
 
   return NextResponse.json(data, { status: 200 });
 }
 
+// ---------- POST: add movie to a collection ----------
 const AddMovieSchema = z.object({
   movUid: z.number().int().positive(),
 });
@@ -97,11 +108,19 @@ export async function POST(
   const body = await req.json().catch(() => null);
   const parsed = AddMovieSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.format() }, { status: 400 });
+    const errors = parsed.error.issues.map((i) => ({
+      field: i.path.join(".") || "form",
+      message: i.message,
+    }));
+    return NextResponse.json(
+      { error: "Invalid input", errors },
+      { status: 400 }
+    );
   }
   const { movUid } = parsed.data;
 
   try {
+    // Ownership
     const owns = await query<{ exists: boolean }>(
       `
       SELECT EXISTS (
@@ -119,6 +138,7 @@ export async function POST(
       );
     }
 
+    // Movie exists
     const movieExists = await query<{ exists: boolean }>(
       `
       SELECT EXISTS (
@@ -154,6 +174,104 @@ export async function POST(
       );
     }
     console.error("POST /api/collections/[id]/movies error:", {
+      code: err?.code,
+      message: err?.message,
+      detail: err?.detail,
+      constraint: err?.constraint,
+    });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+// ---------- DELETE: remove movie from a collection ----------
+const DeleteMovieSchema = z.object({
+  movUid: z.number().int().positive(),
+});
+
+export async function DELETE(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const user = await getSessionUser();
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await ctx.params;
+  const collectionId = Number(id);
+  if (!Number.isInteger(collectionId) || collectionId <= 0) {
+    return NextResponse.json(
+      { error: "Invalid collection ID" },
+      { status: 400 }
+    );
+  }
+
+  // movUid can come from query (?movUid=123) OR JSON body { movUid: 123 }
+  const url = new URL(req.url);
+  const movUidFromQuery = url.searchParams.get("movUid");
+  let movUid: number | null = movUidFromQuery ? Number(movUidFromQuery) : null;
+
+  if (!movUid) {
+    const body = await req.json().catch(() => null);
+    const parsed = DeleteMovieSchema.safeParse(body);
+    if (!parsed.success) {
+      const errors = parsed.error.issues.map((i) => ({
+        field: i.path.join(".") || "form",
+        message: i.message,
+      }));
+      return NextResponse.json(
+        { error: "Invalid input", errors },
+        { status: 400 }
+      );
+    }
+    movUid = parsed.data.movUid;
+  }
+
+  if (!Number.isInteger(movUid) || movUid <= 0) {
+    return NextResponse.json({ error: "Invalid movUid" }, { status: 400 });
+  }
+
+  try {
+    // Ownership
+    const owns = await query<{ exists: boolean }>(
+      `
+      SELECT EXISTS (
+        SELECT 1
+        FROM p320_49.collection c
+        WHERE c.collection_id = $1 AND c.user_id = $2
+      ) AS exists
+      `,
+      [collectionId, user.userId]
+    );
+    if (!owns.rows[0]?.exists) {
+      return NextResponse.json(
+        { error: "Collection not found for this user" },
+        { status: 404 }
+      );
+    }
+
+    // Delete the movie from the collection
+    const result = await query(
+      `
+      DELETE FROM p320_49.collection_movies
+      WHERE collection_id = $1 AND mov_uid = $2
+      `,
+      [collectionId, movUid]
+    );
+
+    if (result.rowCount === 0) {
+      return NextResponse.json(
+        { error: "Movie not in this collection" },
+        { status: 404 }
+      );
+    }
+
+    // 204 No Content
+    return new NextResponse(null, { status: 204 });
+  } catch (err: any) {
+    console.error("DELETE /api/collections/[id]/movies error:", {
       code: err?.code,
       message: err?.message,
       detail: err?.detail,
