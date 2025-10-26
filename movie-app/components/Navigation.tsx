@@ -56,9 +56,9 @@ export default function Navigation() {
         <div className="flex items-center gap-2">
           {signedIn && (
             <>
-              <Link href="/search">
+              <Link href="/explore">
                 <Button
-                  variant={isActive("/search") ? "default" : "ghost"}
+                  variant={isActive("/explore") ? "default" : "ghost"}
                   size="sm"
                   className="gap-2"
                 >
@@ -69,7 +69,7 @@ export default function Navigation() {
 
               <Link href="/home">
                 <Button
-                  variant={isActive("/collections") ? "default" : "ghost"}
+                  variant={isActive("/home") ? "default" : "ghost"}
                   size="sm"
                   className="gap-2"
                 >

@@ -43,9 +43,9 @@ export default function Page() {
               collections
             </p>
 
-            {!loading && (
-              signedIn ? (
-                <Link href="/search">
+            {!loading &&
+              (signedIn ? (
+                <Link href="/explore">
                   <Button
                     size="lg"
                     className="
@@ -71,8 +71,7 @@ export default function Page() {
                     Sign In to Start
                   </Button>
                 </Link>
-              )
-            )}
+              ))}
           </div>
         </section>
 
@@ -129,9 +128,9 @@ export default function Page() {
               Join thousands of movie enthusiasts organizing their favorite
               films
             </p>
-            {!loading && (
-              signedIn ? (
-                <Link href="/search">
+            {!loading &&
+              (signedIn ? (
+                <Link href="/explore">
                   <Button
                     size="lg"
                     variant="secondary"
@@ -151,8 +150,7 @@ export default function Page() {
                     Sign In to Browse
                   </Button>
                 </Link>
-              )
-            )}
+              ))}
           </div>
         </section>
       </main>
