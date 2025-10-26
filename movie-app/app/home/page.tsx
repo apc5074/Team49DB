@@ -25,30 +25,27 @@ type SessionUser = {
 };
 
 type Collection = {
-  collection_id: number;
+  collectionId: number;
   name: string;
-  user_id: number;
+  userId: number;
+  movieCount: number;
   created_at?: string;
 };
 
 export default function CollectionsPage() {
   const router = useRouter();
 
-  // session state
   const [sessionLoading, setSessionLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
 
-  // collections state
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // dialog state
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // 1) load session
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -70,22 +67,18 @@ export default function CollectionsPage() {
     };
   }, []);
 
-  // 2) redirect if not signed in
   useEffect(() => {
     if (!sessionLoading && !user) {
       router.replace("/signin");
     }
   }, [sessionLoading, user, router]);
 
-  // 3) fetch collections once session is ready
   async function fetchCollections() {
     if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/collections?userId=${user.userId}`, {
-        cache: "no-store",
-      });
+      const res = await fetch(`/api/collections`, { cache: "no-store" });
       if (!res.ok) throw new Error(await res.text());
       const data: Collection[] = await res.json();
       setCollections(data);
@@ -112,7 +105,7 @@ export default function CollectionsPage() {
       const res = await fetch("/api/collections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, userId: user.userId }),
+        body: JSON.stringify({ name }),
       });
       if (!res.ok) {
         const txt = await res.text();
@@ -130,13 +123,13 @@ export default function CollectionsPage() {
 
   async function renameCollection(id: number) {
     if (!user) return;
-    const current = collections.find((c) => c.collection_id === id)?.name ?? "";
+    const current = collections.find((c) => c.collectionId === id)?.name ?? "";
     const name = prompt("Rename collection:", current);
     if (name == null || !name.trim()) return;
 
     const prev = collections;
     setCollections((cs) =>
-      cs.map((c) => (c.collection_id === id ? { ...c, name: name.trim() } : c))
+      cs.map((c) => (c.collectionId === id ? { ...c, name: name.trim() } : c))
     );
 
     try {
@@ -156,7 +149,7 @@ export default function CollectionsPage() {
     if (!user) return;
     if (!confirm("Delete this collection? This cannot be undone.")) return;
     const prev = collections;
-    setCollections((cs) => cs.filter((c) => c.collection_id !== id));
+    setCollections((cs) => cs.filter((c) => c.collectionId !== id));
     try {
       const res = await fetch(`/api/collections/${id}?userId=${user.userId}`, {
         method: "DELETE",
@@ -253,7 +246,7 @@ export default function CollectionsPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {collections.map((c) => (
               <div
-                key={c.collection_id}
+                key={c.collectionId}
                 className="group bg-card/60 backdrop-blur-sm border border-border hover:border-primary/60 rounded-2xl p-5 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -264,7 +257,11 @@ export default function CollectionsPage() {
                     <div>
                       <h3 className="text-lg font-semibold">{c.name}</h3>
                       <p className="text-xs text-muted-foreground">
-                        ID: {c.collection_id}
+                        ID: {c.collectionId}
+                      </p>
+                      {/* ⬅️ NEW: movie count */}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {c.movieCount} {c.movieCount === 1 ? "movie" : "movies"}
                       </p>
                     </div>
                   </div>
@@ -273,7 +270,7 @@ export default function CollectionsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => renameCollection(c.collection_id)}
+                      onClick={() => renameCollection(c.collectionId)}
                       title="Rename"
                     >
                       <Pencil className="w-4 h-4" />
@@ -281,7 +278,7 @@ export default function CollectionsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => deleteCollection(c.collection_id)}
+                      onClick={() => deleteCollection(c.collectionId)}
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -290,7 +287,7 @@ export default function CollectionsPage() {
                 </div>
 
                 <div className="mt-4">
-                  <Link href={`/home/${c.collection_id}`}>
+                  <Link href={`/home/${c.collectionId}`}>
                     <Button variant="secondary" className="w-full">
                       Open
                     </Button>
