@@ -32,6 +32,8 @@ type MovieRow = {
   year?: number | string | null;
 };
 
+type Choice = { movUid: number; title: string; year: number | null };
+
 export default function CollectionPage() {
   const { collectionId } = useParams<{ collectionId: string }>();
   const [movies, setMovies] = useState<MovieRow[]>([]);
@@ -40,7 +42,18 @@ export default function CollectionPage() {
 
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
+
+  // Add-by-ID state
   const [movUid, setMovUid] = useState<string>("");
+
+  // Add-by-title state
+  const [mode, setMode] = useState<"id" | "title">("id");
+  const [title, setTitle] = useState<string>("");
+  const [year, setYear] = useState<string>("");
+
+  // If backend returns 409 with choices:
+  const [choices, setChoices] = useState<Choice[]>([]);
+  const [picking, setPicking] = useState(false);
 
   const [removingId, setRemovingId] = useState<number | null>(null);
 
@@ -66,31 +79,94 @@ export default function CollectionPage() {
   }, [collectionId]);
 
   async function addMovie() {
-    const id = Number(movUid);
-    if (!Number.isInteger(id) || id <= 0) {
-      setErr("Enter a valid numeric movie ID (mov_uid).");
-      return;
-    }
-    setAdding(true);
     setErr(null);
+    setAdding(true);
+    setChoices([]);
+    setPicking(false);
+
+    try {
+      let payload: any;
+
+      if (mode === "id") {
+        const id = Number(movUid);
+        if (!Number.isInteger(id) || id <= 0) {
+          throw new Error("Enter a valid numeric movie ID (mov_uid).");
+        }
+        payload = { movUid: id };
+      } else {
+        const t = title.trim();
+        if (!t) throw new Error("Enter a movie title.");
+        const y = year.trim() ? Number(year.trim()) : undefined;
+        if (y != null && (!Number.isInteger(y) || y < 1800 || y > 2100)) {
+          throw new Error("Enter a valid year (1800–2100) or leave blank.");
+        }
+        payload = y ? { title: t, year: y } : { title: t };
+      }
+
+      const res = await fetch(`/api/collections/${collectionId}/movie`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 409) {
+        // Multiple matches – show choices
+        const data = await res.json().catch(() => ({}));
+        const cs: Choice[] = Array.isArray(data?.choices) ? data.choices : [];
+        if (!cs.length)
+          throw new Error(
+            data?.error || "Multiple matches—no choices returned."
+          );
+        setChoices(cs);
+        setPicking(true);
+        return; // keep dialog open for picking
+      }
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to add movie");
+      }
+
+      await fetchMovies();
+      resetAddDialog();
+    } catch (e: any) {
+      setErr(e?.message || "Failed to add movie");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function pickChoice(movUid: number) {
+    // finalize by explicit movUid
+    setErr(null);
+    setAdding(true);
     try {
       const res = await fetch(`/api/collections/${collectionId}/movie`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ movUid: id }),
+        body: JSON.stringify({ movUid }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to add movie");
       }
       await fetchMovies();
-      setOpen(false);
-      setMovUid("");
+      resetAddDialog();
     } catch (e: any) {
       setErr(e?.message || "Failed to add movie");
     } finally {
       setAdding(false);
     }
+  }
+
+  function resetAddDialog() {
+    setOpen(false);
+    setMovUid("");
+    setTitle("");
+    setYear("");
+    setChoices([]);
+    setPicking(false);
+    setMode("id");
   }
 
   async function removeMovie(id: number) {
@@ -106,7 +182,6 @@ export default function CollectionPage() {
         `/api/collections/${collectionId}/movie?movUid=${id}`,
         { method: "DELETE" }
       );
-
       if (!res.ok && res.status !== 204) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to remove movie");
@@ -276,39 +351,111 @@ export default function CollectionPage() {
           <DialogHeader>
             <DialogTitle>Add a movie</DialogTitle>
             <DialogDescription>
-              Enter the movie ID (<code>mov_uid</code>) from your database.
-              We’ll add it and refresh the list.
+              Add by <strong>ID</strong> or by <strong>Title</strong>. If
+              multiple movies match a title, you’ll be asked to pick one.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-2">
-            <Label htmlFor="movUid">Movie ID (mov_uid)</Label>
-            <Input
-              id="movUid"
-              placeholder="e.g., 12345"
-              value={movUid}
-              onChange={(e) => setMovUid(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addMovie()}
-              autoFocus
-              inputMode="numeric"
-              pattern="[0-9]*"
-            />
+          {/* Mode switch */}
+          <div className="flex gap-2 mb-2">
+            <Button
+              variant={mode === "id" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setMode("id")}
+            >
+              By ID
+            </Button>
+            <Button
+              variant={mode === "title" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setMode("title")}
+            >
+              By Title
+            </Button>
           </div>
 
+          {/* Fields */}
+          {mode === "id" ? (
+            <div className="grid gap-2">
+              <Label htmlFor="movUid">Movie ID (mov_uid)</Label>
+              <Input
+                id="movUid"
+                placeholder="e.g., 12345"
+                value={movUid}
+                onChange={(e) => setMovUid(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addMovie()}
+                autoFocus
+                inputMode="numeric"
+                pattern="[0-9]*"
+              />
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                placeholder='e.g., "Dune"'
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addMovie()}
+                autoFocus
+              />
+              <Label
+                htmlFor="year"
+                className="mt-2 text-sm text-muted-foreground"
+              >
+                Year (optional)
+              </Label>
+              <Input
+                id="year"
+                placeholder="e.g., 2021"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addMovie()}
+                inputMode="numeric"
+                pattern="[0-9]*"
+              />
+            </div>
+          )}
+
+          {/* Choices from 409 (multiple matches) */}
+          {picking && choices.length > 0 && (
+            <div className="mt-4 border border-border rounded-md p-3">
+              <p className="text-sm mb-2">Multiple matches — pick one:</p>
+              <div className="space-y-2">
+                {choices.map((c) => (
+                  <div
+                    key={c.movUid}
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-2"
+                  >
+                    <span className="text-sm">
+                      {c.title} {c.year ? `(${c.year})` : ""}
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => pickChoice(c.movUid)}
+                      disabled={adding}
+                    >
+                      Choose
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <DialogFooter className="gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => setOpen(false)}
-              disabled={adding}
-            >
+            <Button variant="ghost" onClick={resetAddDialog} disabled={adding}>
               Cancel
             </Button>
             <Button
               onClick={addMovie}
-              disabled={adding || !movUid.trim()}
+              disabled={
+                adding || (mode === "id" ? !movUid.trim() : !title.trim())
+              }
               className="gap-2"
             >
-              {adding ? "Adding..." : "Add Movie"}
+              {adding ? (picking ? "Adding…" : "Adding…") : "Add Movie"}
             </Button>
           </DialogFooter>
         </DialogContent>
