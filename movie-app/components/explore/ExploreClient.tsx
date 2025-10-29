@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Search, Calendar } from "lucide-react";
 
 type ExploreRow = {
   mov_uid: number;
@@ -23,10 +23,10 @@ type ExploreRow = {
   rating_count: number;
   genres: string[];
   directors: string[];
-  cast: string[]; // full list from API; we'll show top 2-3
+  cast: string[];
   studios: string[];
   earliest_release_date: string | null;
-  user_rating: number | null; // ⬅️ NEW
+  user_rating: number | null;
 };
 
 type ExploreResponse = {
@@ -36,11 +36,7 @@ type ExploreResponse = {
   items: ExploreRow[];
 };
 
-export default function ExploreClient({
-  initial,
-}: {
-  initial: ExploreResponse;
-}) {
+export default function ExploreClient({ initial }: { initial: ExploreResponse }) {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -51,6 +47,7 @@ export default function ExploreClient({
   const genre = sp.get("genre") ?? "";
   const cast = sp.get("cast") ?? "";
   const director = sp.get("director") ?? "";
+  const releaseDate = sp.get("release_date") ?? "";
   const sort = (sp.get("sort") ?? "title") as
     | "title"
     | "avg_rating"
@@ -75,9 +72,7 @@ export default function ExploreClient({
     const fetcher = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/explore?${sp.toString()}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`/api/explore?${sp.toString()}`, { cache: "no-store" });
         const json = await res.json();
         setData(json);
       } catch {
@@ -87,17 +82,19 @@ export default function ExploreClient({
       }
     };
     fetcher();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp.toString()]);
 
   const [qInput, setQInput] = useState(q);
+  const [releaseDateInput, setReleaseDateInput] = useState(releaseDate);
+
   useEffect(() => setQInput(q), [q]);
+  useEffect(() => setReleaseDateInput(releaseDate), [releaseDate]);
+
   useEffect(() => {
     const t = setTimeout(() => {
       if (qInput !== q) update({ q: qInput, page: 1 });
     }, 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qInput]);
 
   function toggleOrder() {
@@ -105,19 +102,12 @@ export default function ExploreClient({
   }
 
   function onHeaderSort(
-    key:
-      | "title"
-      | "avg_rating"
-      | "duration"
-      | "genre"
-      | "studio"
-      | "release_date"
+    key: "title" | "avg_rating" | "duration" | "genre" | "studio" | "release_date"
   ) {
     if (sort === key) toggleOrder();
     else update({ sort: key, order: "asc", page: 1 });
   }
 
-  // Helper function to format date
   const formatReleaseDate = (dateString: string | null) => {
     if (!dateString) return "—";
     try {
@@ -134,7 +124,8 @@ export default function ExploreClient({
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Search by keyword */}
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -149,26 +140,34 @@ export default function ExploreClient({
             placeholder="Genre"
             className="w-40"
             defaultValue={genre}
-            onBlur={(e) =>
-              update({ genre: e.target.value || undefined, page: 1 })
-            }
+            onBlur={(e) => update({ genre: e.target.value || undefined, page: 1 })}
           />
           <Input
             placeholder="Cast"
             className="w-40"
             defaultValue={cast}
-            onBlur={(e) =>
-              update({ cast: e.target.value || undefined, page: 1 })
-            }
+            onBlur={(e) => update({ cast: e.target.value || undefined, page: 1 })}
           />
           <Input
             placeholder="Director"
             className="w-40"
             defaultValue={director}
-            onBlur={(e) =>
-              update({ director: e.target.value || undefined, page: 1 })
-            }
+            onBlur={(e) => update({ director: e.target.value || undefined, page: 1 })}
           />
+
+          {/* 🆕 Release Date Filter */}
+          <div className="relative w-48">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="date"
+              className="pl-9"
+              value={releaseDateInput}
+              onChange={(e) => setReleaseDateInput(e.target.value)}
+              onBlur={(e) =>
+                update({ release_date: e.target.value || undefined, page: 1 })
+              }
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -188,12 +187,7 @@ export default function ExploreClient({
               <SelectItem value="duration">Duration</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleOrder}
-            className="gap-1"
-          >
+          <Button variant="ghost" size="sm" onClick={toggleOrder} className="gap-1">
             {order === "asc" ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
@@ -205,25 +199,15 @@ export default function ExploreClient({
       </div>
 
       <div className="rounded-xl border border-border bg-card/60">
-        {/* Header */}
         <div className="grid grid-cols-12 px-4 py-3 text-xs text-muted-foreground gap-2">
-          <button
-            className="text-left col-span-3 font-medium"
-            onClick={() => onHeaderSort("title")}
-          >
+          <button className="text-left col-span-3 font-medium" onClick={() => onHeaderSort("title")}>
             Title
           </button>
           <div className="col-span-2">Directors</div>
-          <button
-            className="text-left col-span-2 font-medium"
-            onClick={() => onHeaderSort("genre")}
-          >
+          <button className="text-left col-span-2 font-medium" onClick={() => onHeaderSort("genre")}>
             Genre
           </button>
-          <button
-            className="text-left col-span-2 font-medium"
-            onClick={() => onHeaderSort("studio")}
-          >
+          <button className="text-left col-span-2 font-medium" onClick={() => onHeaderSort("studio")}>
             Studio
           </button>
           <button
@@ -252,9 +236,7 @@ export default function ExploreClient({
             Loading…
           </div>
         ) : data.items.length === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">
-            No movies found.
-          </div>
+          <div className="p-6 text-sm text-muted-foreground">No movies found.</div>
         ) : (
           <ul className="divide-y divide-border">
             {data.items.map((m) => (
@@ -262,30 +244,23 @@ export default function ExploreClient({
                 key={m.mov_uid}
                 className="px-4 py-4 grid grid-cols-12 gap-2 items-center hover:bg-muted/50 transition-colors"
               >
-                {/* Title + Age + (short) Cast */}
                 <div className="col-span-3">
                   <div className="font-medium text-sm truncate" title={m.title}>
                     {m.title}
                   </div>
-
                   {m.age_rating && (
                     <Badge variant="secondary" className="text-xs mt-1">
                       {m.age_rating}
                     </Badge>
                   )}
-
-                  {/* Short cast: show first 3 names for space */}
                   <div
                     className="text-xs text-muted-foreground mt-1 truncate"
                     title={m.cast?.join(", ")}
                   >
-                    {m.cast && m.cast.length
-                      ? m.cast.slice(0, 3).join(", ")
-                      : "—"}
+                    {m.cast && m.cast.length ? m.cast.slice(0, 3).join(", ") : "—"}
                   </div>
                 </div>
 
-                {/* Directors */}
                 <div
                   className="col-span-2 text-sm text-muted-foreground truncate"
                   title={m.directors.join(", ")}
@@ -293,15 +268,10 @@ export default function ExploreClient({
                   {m.directors.length ? m.directors.join(", ") : "—"}
                 </div>
 
-                {/* Genres */}
-                <div
-                  className="col-span-2 text-sm truncate"
-                  title={m.genres.join(", ")}
-                >
+                <div className="col-span-2 text-sm truncate" title={m.genres.join(", ")}>
                   {m.genres.length ? m.genres.join(", ") : "—"}
                 </div>
 
-                {/* Studios */}
                 <div
                   className="col-span-2 text-sm text-muted-foreground truncate"
                   title={m.studios.join(", ")}
@@ -309,22 +279,16 @@ export default function ExploreClient({
                   {m.studios.length ? m.studios.join(", ") : "—"}
                 </div>
 
-                {/* Release Date */}
                 <div className="col-span-1 text-sm text-center whitespace-nowrap">
                   {formatReleaseDate(m.earliest_release_date)}
                 </div>
 
-                {/* Duration */}
                 <div className="col-span-1 text-sm text-center">
                   {m.duration != null ? `${m.duration}m` : "—"}
                 </div>
 
-                {/* Ratings: avg + your rating (second line, small) */}
                 <div className="col-span-1 text-sm text-center">
-                  <div
-                    className="font-medium"
-                    title={`Average from ${m.rating_count} ratings`}
-                  >
+                  <div className="font-medium" title={`Average from ${m.rating_count} ratings`}>
                     {m.avg_rating != null ? m.avg_rating.toFixed(1) : "—"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
@@ -339,8 +303,8 @@ export default function ExploreClient({
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Showing {(page - 1) * pageSize + 1}–
-          {Math.min(page * pageSize, data.total)} of {data.total}
+          Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, data.total)} of{" "}
+          {data.total}
         </div>
         <div className="flex items-center gap-2">
           <Button

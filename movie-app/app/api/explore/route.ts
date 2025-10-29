@@ -17,7 +17,7 @@ type Row = {
   cast: string[];
   studios: string[];
   earliest_release_date: string | null;
-  user_rating: number | null; // ⬅️ NEW
+  user_rating: number | null;
 };
 
 const ALLOWED_SORT = new Set([
@@ -37,6 +37,7 @@ export async function GET(req: Request) {
   const genre = url.searchParams.get("genre")?.trim() ?? "";
   const cast = url.searchParams.get("cast")?.trim() ?? "";
   const director = url.searchParams.get("director")?.trim() ?? "";
+  const releaseDate = url.searchParams.get("release_date")?.trim() ?? "";
   const sort = (url.searchParams.get("sort") ?? "title").toLowerCase();
   const order =
     (url.searchParams.get("order") ?? "asc").toLowerCase() === "desc"
@@ -51,7 +52,6 @@ export async function GET(req: Request) {
   const sortCol = ALLOWED_SORT.has(sort) ? sort : "title";
   const offset = (page - 1) * pageSize;
 
-  // Current user (for user-specific rating)
   const me = await getSessionUser().catch(() => null);
   const userId = me?.userId ?? null;
 
@@ -122,6 +122,22 @@ export async function GET(req: Request) {
         WHERE di.mov_uid = m.mov_uid AND fc.name ILIKE $${p}
       )`);
       params.push(`%${director}%`);
+      p++;
+    }
+
+    if (releaseDate) {
+      where.push(`
+        EXISTS (
+          SELECT 1
+          FROM platform_release pr
+          WHERE pr.mov_uid = m.mov_uid
+          AND pr.release_date::date = $${p}::date
+          AND (SELECT MIN(pr2.release_date::date)
+               FROM platform_release pr2
+               WHERE pr2.mov_uid = m.mov_uid) = pr.release_date::date
+        )
+      `);
+      params.push(releaseDate);
       p++;
     }
 
