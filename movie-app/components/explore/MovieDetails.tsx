@@ -24,18 +24,27 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
   const directors = movie.directors ?? [];
 
   const renderStars = (rating: number) => {
+    const rounded = Math.max(0, Math.min(5, Math.round(rating)));
     return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-5 h-5 ${
-              star <= rating
-                ? "fill-accent text-accent"
-                : "fill-muted/20 text-muted/20"
-            }`}
-          />
-        ))}
+      <div
+        className="flex gap-1"
+        aria-label={`${rounded} out of 5 stars`}
+        title={`${rounded} / 5`}
+      >
+        {[1, 2, 3, 4, 5].map((star) => {
+          const filled = star <= rounded;
+          return (
+            <Star
+              key={star}
+              aria-hidden="true"
+              className={`w-5 h-5 stroke-current stroke-[1.75] ${
+                filled
+                  ? "text-amber-400 fill-amber-400 drop-shadow-sm"
+                  : "text-muted-foreground/40 fill-transparent"
+              }`}
+            />
+          );
+        })}
       </div>
     );
   };
@@ -53,7 +62,9 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
                   <Clock className="w-4 h-4" />
                   Duration
                 </div>
-                <div className="text-2xl font-bold">{movie.duration} min</div>
+                <div className="text-2xl font-bold text-foreground">
+                  {movie.duration} min
+                </div>
               </div>
             </div>
           </div>
@@ -68,12 +79,13 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
                 Average Rating
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-accent">
+                {/* high-contrast number */}
+                <span className="text-2xl font-bold text-foreground">
                   {avg.toFixed(1)}
                 </span>
                 <span className="text-sm text-muted-foreground">/ 5.0</span>
               </div>
-              <div className="mt-3">{renderStars(Math.round(avg))}</div>
+              <div className="mt-3">{renderStars(avg)}</div>
             </div>
           </div>
         )}
@@ -83,11 +95,12 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
           <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/80 to-card/40 p-6 backdrop-blur-sm transition-all hover:border-accent/50 hover:shadow-[0_0_30px_-5px_hsl(var(--accent)/0.3)]">
             <div>
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mb-2">
-                <Star className="w-4 h-4 fill-accent text-accent" />
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                 Your Rating
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-accent">
+                {/* high-contrast number */}
+                <span className="text-2xl font-bold text-foreground">
                   {movie.user.rating_value}
                 </span>
                 <span className="text-sm text-muted-foreground">/ 5</span>
@@ -105,7 +118,7 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
                 <Calendar className="w-4 h-4" />
                 Last Watched
               </div>
-              <div className="text-sm font-medium">
+              <div className="text-sm font-medium text-foreground">
                 {new Date(movie.user.watched_at).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "short",
@@ -129,7 +142,9 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
             <div className="text-xs font-medium text-muted-foreground mb-1">
               Age Rating
             </div>
-            <div className="text-lg font-semibold">{movie.age_rating}</div>
+            <div className="text-lg font-semibold text-foreground">
+              {movie.age_rating}
+            </div>
           </div>
         )}
         {count !== null && (
@@ -138,7 +153,7 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
               <Users className="w-4 h-4" />
               Total Ratings
             </div>
-            <div className="text-lg font-semibold">
+            <div className="text-lg font-semibold text-foreground">
               {count.toLocaleString()}
             </div>
           </div>
@@ -181,7 +196,7 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
                   key={`${name}-${i}`}
                   className="group rounded-xl border border-border/50 bg-gradient-to-br from-card/60 to-card/30 px-5 py-3 backdrop-blur-sm transition-all hover:border-accent/50 hover:shadow-[0_0_20px_-5px_hsl(var(--accent)/0.3)]"
                 >
-                  <div className="font-semibold">{name}</div>
+                  <div className="font-semibold text-foreground">{name}</div>
                   <div className="text-xs text-muted-foreground">Director</div>
                 </div>
               ))}

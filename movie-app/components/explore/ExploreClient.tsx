@@ -1,4 +1,3 @@
-// components/explore/ExploreClient.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -24,9 +23,10 @@ type ExploreRow = {
   rating_count: number;
   genres: string[];
   directors: string[];
-  cast: string[];
+  cast: string[]; // full list from API; we'll show top 2-3
   studios: string[];
   earliest_release_date: string | null;
+  user_rating: number | null; // ⬅️ NEW
 };
 
 type ExploreResponse = {
@@ -57,7 +57,7 @@ export default function ExploreClient({
     | "duration"
     | "genre"
     | "studio"
-    | "release_date"; 
+    | "release_date";
   const order = (sp.get("order") ?? "asc") as "asc" | "desc";
   const page = Number(sp.get("page") ?? "1");
   const pageSize = Number(sp.get("pageSize") ?? "20");
@@ -87,6 +87,7 @@ export default function ExploreClient({
       }
     };
     fetcher();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp.toString()]);
 
   const [qInput, setQInput] = useState(q);
@@ -96,6 +97,7 @@ export default function ExploreClient({
       if (qInput !== q) update({ q: qInput, page: 1 });
     }, 300);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qInput]);
 
   function toggleOrder() {
@@ -109,7 +111,7 @@ export default function ExploreClient({
       | "duration"
       | "genre"
       | "studio"
-      | "release_date" 
+      | "release_date"
   ) {
     if (sort === key) toggleOrder();
     else update({ sort: key, order: "asc", page: 1 });
@@ -119,10 +121,10 @@ export default function ExploreClient({
   const formatReleaseDate = (dateString: string | null) => {
     if (!dateString) return "—";
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       });
     } catch {
       return "—";
@@ -205,23 +207,41 @@ export default function ExploreClient({
       <div className="rounded-xl border border-border bg-card/60">
         {/* Header */}
         <div className="grid grid-cols-12 px-4 py-3 text-xs text-muted-foreground gap-2">
-          <button className="text-left col-span-3 font-medium" onClick={() => onHeaderSort("title")}>
+          <button
+            className="text-left col-span-3 font-medium"
+            onClick={() => onHeaderSort("title")}
+          >
             Title
           </button>
           <div className="col-span-2">Directors</div>
-          <button className="text-left col-span-2 font-medium" onClick={() => onHeaderSort("genre")}>
+          <button
+            className="text-left col-span-2 font-medium"
+            onClick={() => onHeaderSort("genre")}
+          >
             Genre
           </button>
-          <button className="text-left col-span-2 font-medium" onClick={() => onHeaderSort("studio")}>
+          <button
+            className="text-left col-span-2 font-medium"
+            onClick={() => onHeaderSort("studio")}
+          >
             Studio
           </button>
-          <button className="text-left col-span-1 font-medium text-center" onClick={() => onHeaderSort("release_date")}>
+          <button
+            className="text-left col-span-1 font-medium text-center"
+            onClick={() => onHeaderSort("release_date")}
+          >
             Release Date
           </button>
-          <button className="text-left col-span-1 font-medium text-center" onClick={() => onHeaderSort("duration")}>
+          <button
+            className="text-left col-span-1 font-medium text-center"
+            onClick={() => onHeaderSort("duration")}
+          >
             Length
           </button>
-          <button className="text-left col-span-1 font-medium text-center" onClick={() => onHeaderSort("avg_rating")}>
+          <button
+            className="text-left col-span-1 font-medium text-center"
+            onClick={() => onHeaderSort("avg_rating")}
+          >
             Rating
           </button>
         </div>
@@ -242,30 +262,50 @@ export default function ExploreClient({
                 key={m.mov_uid}
                 className="px-4 py-4 grid grid-cols-12 gap-2 items-center hover:bg-muted/50 transition-colors"
               >
-                {/* Title */}
+                {/* Title + Age + (short) Cast */}
                 <div className="col-span-3">
                   <div className="font-medium text-sm truncate" title={m.title}>
                     {m.title}
                   </div>
+
                   {m.age_rating && (
                     <Badge variant="secondary" className="text-xs mt-1">
                       {m.age_rating}
                     </Badge>
                   )}
+
+                  {/* Short cast: show first 3 names for space */}
+                  <div
+                    className="text-xs text-muted-foreground mt-1 truncate"
+                    title={m.cast?.join(", ")}
+                  >
+                    {m.cast && m.cast.length
+                      ? m.cast.slice(0, 3).join(", ")
+                      : "—"}
+                  </div>
                 </div>
 
                 {/* Directors */}
-                <div className="col-span-2 text-sm text-muted-foreground truncate" title={m.directors.join(", ")}>
+                <div
+                  className="col-span-2 text-sm text-muted-foreground truncate"
+                  title={m.directors.join(", ")}
+                >
                   {m.directors.length ? m.directors.join(", ") : "—"}
                 </div>
 
                 {/* Genres */}
-                <div className="col-span-2 text-sm truncate" title={m.genres.join(", ")}>
+                <div
+                  className="col-span-2 text-sm truncate"
+                  title={m.genres.join(", ")}
+                >
                   {m.genres.length ? m.genres.join(", ") : "—"}
                 </div>
 
                 {/* Studios */}
-                <div className="col-span-2 text-sm text-muted-foreground truncate" title={m.studios.join(", ")}>
+                <div
+                  className="col-span-2 text-sm text-muted-foreground truncate"
+                  title={m.studios.join(", ")}
+                >
                   {m.studios.length ? m.studios.join(", ") : "—"}
                 </div>
 
@@ -279,9 +319,17 @@ export default function ExploreClient({
                   {m.duration != null ? `${m.duration}m` : "—"}
                 </div>
 
-                {/* Rating */}
-                <div className="col-span-1 text-sm text-center font-medium">
-                  {m.avg_rating != null ? m.avg_rating.toFixed(1) : "—"}
+                {/* Ratings: avg + your rating (second line, small) */}
+                <div className="col-span-1 text-sm text-center">
+                  <div
+                    className="font-medium"
+                    title={`Average from ${m.rating_count} ratings`}
+                  >
+                    {m.avg_rating != null ? m.avg_rating.toFixed(1) : "—"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {m.user_rating != null ? `You: ${m.user_rating}` : ""}
+                  </div>
                 </div>
               </li>
             ))}

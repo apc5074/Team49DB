@@ -1,6 +1,7 @@
 // app/api/explore/route.ts
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,7 @@ type Row = {
   cast: string[];
   studios: string[];
   earliest_release_date: string | null;
+  user_rating: number | null; // ⬅️ NEW
 };
 
 const ALLOWED_SORT = new Set([
@@ -24,7 +26,7 @@ const ALLOWED_SORT = new Set([
   "duration",
   "genre",
   "studio",
-  "release_date", 
+  "release_date",
 ]);
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -48,6 +50,10 @@ export async function GET(req: Request) {
 
   const sortCol = ALLOWED_SORT.has(sort) ? sort : "title";
   const offset = (page - 1) * pageSize;
+
+  // Current user (for user-specific rating)
+  const me = await getSessionUser().catch(() => null);
+  const userId = me?.userId ?? null;
 
   try {
     const where: string[] = [];
@@ -153,71 +159,78 @@ WITH base AS (
   FROM movie m
   ${whereSql}
 ),
-
-      genres AS (
-        SELECT mg.mov_uid, ARRAY_AGG(DISTINCT g.name ORDER BY g.name) AS genres
-        FROM movie_genre mg
-        JOIN genre g ON g.genre_uid = mg.genre_uid
-        WHERE EXISTS (SELECT 1 FROM base b WHERE b.mov_uid = mg.mov_uid)
-        GROUP BY mg.mov_uid
-      ),
-      directors AS (
-        SELECT di.mov_uid, ARRAY_AGG(DISTINCT fc.name ORDER BY fc.name) AS directors
-        FROM directs_in di
-        JOIN film_contributor fc ON fc.fc_uid = di.fc_uid
-        WHERE EXISTS (SELECT 1 FROM base b WHERE b.mov_uid = di.mov_uid)
-        GROUP BY di.mov_uid
-      ),
-      cast_members AS (
-        SELECT ci.mov_uid, ARRAY_AGG(DISTINCT fc.name ORDER BY fc.name) AS cast_names
-        FROM casts_in ci
-        JOIN film_contributor fc ON fc.fc_uid = ci.fc_uid
-        WHERE EXISTS (SELECT 1 FROM base b WHERE b.mov_uid = ci.mov_uid)
-        GROUP BY ci.mov_uid
-      ),
-      studios AS (
-        SELECT pr.mov_uid, ARRAY_AGG(DISTINCT fc.name ORDER BY fc.name) AS studios
-        FROM produces pr
-        JOIN film_contributor fc ON fc.fc_uid = pr.fc_uid
-        WHERE EXISTS (SELECT 1 FROM base b WHERE b.mov_uid = pr.mov_uid)
-        GROUP BY pr.mov_uid
-      )
-      SELECT
-        b.mov_uid,
-        b.title,
-        b.duration,
-        b.age_rating,
-        b.avg_rating,
-        b.rating_count,
-        b.earliest_release_date,
-        COALESCE(g.genres, ARRAY[]::text[]) AS genres,
-        COALESCE(d.directors, ARRAY[]::text[]) AS directors,
-        COALESCE(cm.cast_names, ARRAY[]::text[]) AS cast,
-        COALESCE(s.studios, ARRAY[]::text[]) AS studios
-      FROM base b
-      LEFT JOIN genres g        ON g.mov_uid = b.mov_uid
-      LEFT JOIN directors d     ON d.mov_uid = b.mov_uid
-      LEFT JOIN cast_members cm ON cm.mov_uid = b.mov_uid
-      LEFT JOIN studios s       ON s.mov_uid = b.mov_uid
-      ORDER BY
-        ${
-          sortCol === "title"
-            ? `b.title ${order}`
-            : sortCol === "avg_rating"
-            ? `b.avg_rating ${order}, b.title ASC`
-            : sortCol === "duration"
-            ? `b.duration ${order} NULLS LAST, b.title ASC`
-            : sortCol === "genre"
-            ? `(CASE WHEN g.genres IS NULL OR array_length(g.genres,1)=0 THEN NULL ELSE g.genres[1] END) ${order} NULLS LAST, b.title ASC`
-            : sortCol === "studio"
-            ? `(CASE WHEN s.studios IS NULL OR array_length(s.studios,1)=0 THEN NULL ELSE s.studios[1] END) ${order} NULLS LAST, b.title ASC`
-            : sortCol === "release_date"
-            ? `b.earliest_release_date ${order} NULLS LAST, b.title ASC`
-            : "b.title ASC"
-        }
-      LIMIT $${p} OFFSET $${p + 1}
+genres AS (
+  SELECT mg.mov_uid, ARRAY_AGG(DISTINCT g.name ORDER BY g.name) AS genres
+  FROM movie_genre mg
+  JOIN genre g ON g.genre_uid = mg.genre_uid
+  WHERE EXISTS (SELECT 1 FROM base b WHERE b.mov_uid = mg.mov_uid)
+  GROUP BY mg.mov_uid
+),
+directors AS (
+  SELECT di.mov_uid, ARRAY_AGG(DISTINCT fc.name ORDER BY fc.name) AS directors
+  FROM directs_in di
+  JOIN film_contributor fc ON fc.fc_uid = di.fc_uid
+  WHERE EXISTS (SELECT 1 FROM base b WHERE b.mov_uid = di.mov_uid)
+  GROUP BY di.mov_uid
+),
+cast_members AS (
+  SELECT ci.mov_uid, ARRAY_AGG(DISTINCT fc.name ORDER BY fc.name) AS cast_names
+  FROM casts_in ci
+  JOIN film_contributor fc ON fc.fc_uid = ci.fc_uid
+  WHERE EXISTS (SELECT 1 FROM base b WHERE b.mov_uid = ci.mov_uid)
+  GROUP BY ci.mov_uid
+),
+studios AS (
+  SELECT pr.mov_uid, ARRAY_AGG(DISTINCT fc.name ORDER BY fc.name) AS studios
+  FROM produces pr
+  JOIN film_contributor fc ON fc.fc_uid = pr.fc_uid
+  WHERE EXISTS (SELECT 1 FROM base b WHERE b.mov_uid = pr.mov_uid)
+  GROUP BY pr.mov_uid
+)
+SELECT
+  b.mov_uid,
+  b.title,
+  b.duration,
+  b.age_rating,
+  b.avg_rating,
+  b.rating_count,
+  b.earliest_release_date,
+  COALESCE(g.genres, ARRAY[]::text[]) AS genres,
+  COALESCE(d.directors, ARRAY[]::text[]) AS directors,
+  COALESCE(cm.cast_names, ARRAY[]::text[]) AS cast,
+  COALESCE(s.studios, ARRAY[]::text[]) AS studios,
+  ur.user_rating
+FROM base b
+LEFT JOIN genres g        ON g.mov_uid = b.mov_uid
+LEFT JOIN directors d     ON d.mov_uid = b.mov_uid
+LEFT JOIN cast_members cm ON cm.mov_uid = b.mov_uid
+LEFT JOIN studios s       ON s.mov_uid = b.mov_uid
+LEFT JOIN LATERAL (
+  SELECT r.rating_value AS user_rating
+  FROM p320_49.rates r
+  WHERE r.mov_uid = b.mov_uid AND r.user_id = $${p}
+  ORDER BY r.rated_at DESC
+  LIMIT 1
+) ur ON TRUE
+ORDER BY
+  ${
+    sortCol === "title"
+      ? `b.title ${order}`
+      : sortCol === "avg_rating"
+      ? `b.avg_rating ${order}, b.title ASC`
+      : sortCol === "duration"
+      ? `b.duration ${order} NULLS LAST, b.title ASC`
+      : sortCol === "genre"
+      ? `(CASE WHEN g.genres IS NULL OR array_length(g.genres,1)=0 THEN NULL ELSE g.genres[1] END) ${order} NULLS LAST, b.title ASC`
+      : sortCol === "studio"
+      ? `(CASE WHEN s.studios IS NULL OR array_length(s.studios,1)=0 THEN NULL ELSE s.studios[1] END) ${order} NULLS LAST, b.title ASC`
+      : sortCol === "release_date"
+      ? `b.earliest_release_date ${order} NULLS LAST, b.title ASC`
+      : "b.title ASC"
+  }
+LIMIT $${p + 1} OFFSET $${p + 2}
       `,
-      [...params, pageSize, offset]
+      [...params, userId, pageSize, offset]
     );
 
     return NextResponse.json({
