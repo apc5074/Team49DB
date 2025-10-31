@@ -98,17 +98,37 @@ export default function ExploreClient({
   }, [sp.toString()]);
 
   const [qInput, setQInput] = useState(q);
+  const [genreInput, setGenreInput] = useState(genre);
+  const [castInput, setCastInput] = useState(cast);
+  const [directorInput, setDirectorInput] = useState(director);
+  const [studioInput, setStudioInput] = useState(studio);
   const [releaseDateInput, setReleaseDateInput] = useState(releaseDate);
 
+  // Sync inputs when URL params change
   useEffect(() => setQInput(q), [q]);
+  useEffect(() => setGenreInput(genre), [genre]);
+  useEffect(() => setCastInput(cast), [cast]);
+  useEffect(() => setDirectorInput(director), [director]);
+  useEffect(() => setStudioInput(studio), [studio]);
   useEffect(() => setReleaseDateInput(releaseDate), [releaseDate]);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (qInput !== q) update({ q: qInput, page: 1 });
-    }, 300);
-    return () => clearTimeout(t);
-  }, [qInput]);
+  function handleSearch() {
+    update({
+      q: qInput,
+      genre: genreInput,
+      cast: castInput,
+      director: directorInput,
+      studio: studioInput,
+      release_date: releaseDateInput,
+      page: 1,
+    });
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  }
 
   function toggleOrder() {
     update({ order: order === "asc" ? "desc" : "asc", page: 1 });
@@ -142,95 +162,104 @@ export default function ExploreClient({
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="bg-card/40 rounded-xl border border-border p-4 space-y-4">
+        <div className="flex flex-col lg:flex-row gap-3">
+          {/* Main search bar */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Search by title, cast, director, genre, studio…"
-              className="pl-9"
+              className="pl-9 h-10"
               value={qInput}
               onChange={(e) => setQInput(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
           </div>
 
+          {/* Search button */}
+          <Button onClick={handleSearch} className="gap-2 h-10 px-6">
+            <Search className="h-4 w-4" />
+            Search
+          </Button>
+        </div>
+
+        {/* Filter row */}
+        <div className="flex flex-wrap items-center gap-2">
           <Input
             placeholder="Genre"
-            className="w-40"
-            defaultValue={genre}
-            onBlur={(e) =>
-              update({ genre: e.target.value || undefined, page: 1 })
-            }
+            className="w-36 h-9 text-sm"
+            value={genreInput}
+            onChange={(e) => setGenreInput(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
           <Input
             placeholder="Cast"
-            className="w-40"
-            defaultValue={cast}
-            onBlur={(e) =>
-              update({ cast: e.target.value || undefined, page: 1 })
-            }
+            className="w-36 h-9 text-sm"
+            value={castInput}
+            onChange={(e) => setCastInput(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
           <Input
             placeholder="Director"
-            className="w-40"
-            defaultValue={director}
-            onBlur={(e) =>
-              update({ director: e.target.value || undefined, page: 1 })
-            }
+            className="w-36 h-9 text-sm"
+            value={directorInput}
+            onChange={(e) => setDirectorInput(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
           <Input
             placeholder="Studio"
-            className="w-40"
-            defaultValue={studio}
-            onBlur={(e) =>
-              update({ studio: e.target.value || undefined, page: 1 })
-            }
+            className="w-36 h-9 text-sm"
+            value={studioInput}
+            onChange={(e) => setStudioInput(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
 
-          <div className="relative w-48">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
             <Input
               type="date"
-              className="pl-9"
+              className="pl-9 w-44 h-9 text-sm"
               value={releaseDateInput}
               onChange={(e) => setReleaseDateInput(e.target.value)}
-              onBlur={(e) =>
-                update({ release_date: e.target.value || undefined, page: 1 })
-              }
+              onKeyDown={handleKeyDown}
             />
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Select
-            defaultValue={sort}
-            onValueChange={(v) => update({ sort: v, order: "asc", page: 1 })}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="title">Title</SelectItem>
-              <SelectItem value="genre">Genre</SelectItem>
-              <SelectItem value="studio">Studio</SelectItem>
-              <SelectItem value="release_date">Release Date</SelectItem>
-              <SelectItem value="avg_rating">Avg Rating</SelectItem>
-              <SelectItem value="duration">Duration</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleOrder}
-            className="gap-1"
-          >
-            {order === "asc" ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-            {order.toUpperCase()}
-          </Button>
+          {/* Spacer */}
+          <div className="flex-1 min-w-4" />
+
+          {/* Sort controls */}
+          <div className="flex items-center gap-2">
+            <Select
+              defaultValue={sort}
+              onValueChange={(v) => update({ sort: v, order: "asc", page: 1 })}
+            >
+              <SelectTrigger className="w-40 h-9">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="title">Title</SelectItem>
+                <SelectItem value="genre">Genre</SelectItem>
+                <SelectItem value="studio">Studio</SelectItem>
+                <SelectItem value="release_date">Release Date</SelectItem>
+                <SelectItem value="avg_rating">Avg Rating</SelectItem>
+                <SelectItem value="duration">Duration</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleOrder}
+              className="gap-1.5 h-9"
+            >
+              {order === "asc" ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+              {order.toUpperCase()}
+            </Button>
+          </div>
         </div>
       </div>
 
