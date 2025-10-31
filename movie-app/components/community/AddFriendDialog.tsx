@@ -65,7 +65,6 @@ export default function AddFriendDialog({
         throw new Error(parseApiError(res.status, data));
       }
 
-      // Success: reset + notify + close
       setEmail("");
       onAdded?.();
       setOpen(false);

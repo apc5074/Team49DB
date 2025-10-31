@@ -19,7 +19,7 @@ export default function SignInPage() {
     setLoading(true);
 
     const fd = new FormData(e.currentTarget);
-    const id = String(fd.get("email") || "").trim(); // email or username
+    const id = String(fd.get("email") || "").trim();
     const password = String(fd.get("password") || "");
 
     try {

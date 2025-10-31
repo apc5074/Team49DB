@@ -16,7 +16,7 @@ async function createPool(): Promise<Pool> {
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
-    ssl: false, // usually localhost to SSH; set true only if your DB expects SSL on 127.0.0.1
+    ssl: false,
   });
 }
 

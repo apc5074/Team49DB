@@ -4,7 +4,6 @@ import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-// GET /api/follows/following
 export async function GET() {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

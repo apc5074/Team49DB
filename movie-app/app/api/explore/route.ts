@@ -1,4 +1,3 @@
-// app/api/explore/route.ts
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";

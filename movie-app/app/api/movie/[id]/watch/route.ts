@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 export const runtime = "nodejs";
 
 const WatchBody = z.object({
-  date: z.string().datetime().optional(), // optional ISO; defaults to NOW()
+  date: z.string().datetime().optional(),
 });
 
 async function ensureMovieExists(movId: number) {

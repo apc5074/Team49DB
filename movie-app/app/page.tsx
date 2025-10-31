@@ -16,15 +16,6 @@ export default function Page() {
       <main>
         <section className="relative h-[620px] md:h-[680px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0">
-            {/* /public/hero-banner.jpg (keep it, we'll mask it to B/W with overlay) */}
-            {/* <Image
-              src="/hero-banner.jpg"
-              alt="Hero"
-              fill
-              priority
-              className="object-cover object-center"
-            /> */}
-            {/* black gradient wash */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/70 to-black" />
           </div>
 

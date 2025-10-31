@@ -51,9 +51,7 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
 
   return (
     <section className="space-y-8">
-      {/* Hero Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Duration Card */}
         {movie.duration && (
           <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/80 to-card/40 p-6 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-[0_0_30px_-5px_hsl(var(--primary)/0.3)]">
             <div className="flex items-start justify-between">
@@ -70,7 +68,6 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
           </div>
         )}
 
-        {/* Average Rating Card */}
         {avg !== null && (
           <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/80 to-card/40 p-6 backdrop-blur-sm transition-all hover:border-accent/50 hover:shadow-[0_0_30px_-5px_hsl(var(--accent)/0.3)]">
             <div>
@@ -79,7 +76,6 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
                 Average Rating
               </div>
               <div className="flex items-baseline gap-2">
-                {/* high-contrast number */}
                 <span className="text-2xl font-bold text-foreground">
                   {avg.toFixed(1)}
                 </span>
@@ -90,7 +86,6 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
           </div>
         )}
 
-        {/* Your Rating Card */}
         {movie.user.rating_value !== null && (
           <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/80 to-card/40 p-6 backdrop-blur-sm transition-all hover:border-accent/50 hover:shadow-[0_0_30px_-5px_hsl(var(--accent)/0.3)]">
             <div>
@@ -99,7 +94,6 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
                 Your Rating
               </div>
               <div className="flex items-baseline gap-2">
-                {/* high-contrast number */}
                 <span className="text-2xl font-bold text-foreground">
                   {movie.user.rating_value}
                 </span>
@@ -110,7 +104,6 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
           </div>
         )}
 
-        {/* Last Watched Card */}
         {movie.user.watched_at && (
           <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/80 to-card/40 p-6 backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-[0_0_30px_-5px_hsl(var(--primary)/0.3)]">
             <div>
@@ -160,7 +153,6 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
         )}
       </div>
 
-      {/* Genres */}
       {movie.genres.length > 0 && (
         <div className="space-y-3">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
@@ -182,7 +174,6 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
       )}
 
       <div className="space-y-8">
-        {/* Directors */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold">Directors</h2>
           {directors.length === 0 ? (
@@ -204,7 +195,6 @@ export default function MovieDetails({ movie }: { movie: MovieAugmented }) {
           )}
         </div>
 
-        {/* Cast */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold">Top Cast</h2>
           {movie.cast.length === 0 ? (

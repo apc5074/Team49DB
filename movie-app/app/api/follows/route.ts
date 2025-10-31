@@ -7,7 +7,6 @@ export const runtime = "nodejs";
 
 const FollowSchema = z.object({ email: z.string().email().max(254) });
 
-// POST /api/follows  -> I (session user) follow target by email
 export async function POST(req: Request) {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -54,7 +53,6 @@ export async function POST(req: Request) {
   }
 }
 
-// DELETE /api/follows  -> I (session user) unfollow target by email
 export async function DELETE(req: Request) {
   const me = await getSessionUser();
   if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -106,7 +106,6 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (err: any) {
-    // Log enough to debug, but return friendly messages
     console.error("POST /api/auth/signup error:", {
       code: err?.code,
       message: err?.message,
@@ -115,7 +114,6 @@ export async function POST(req: NextRequest) {
       table: "p320_49.user",
     });
 
-    // Unique violation
     if (err?.code === "23505") {
       const detail = `${err?.detail || err?.constraint || ""}`.toLowerCase();
       const msg = detail.includes("email")
@@ -126,7 +124,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, message: msg }, { status: 409 });
     }
 
-    // Undefined table
     if (err?.code === "42P01") {
       return NextResponse.json(
         {
@@ -137,7 +134,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Undefined column
     if (err?.code === "42703") {
       return NextResponse.json(
         {
@@ -149,7 +145,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Not-null violation / missing default
     if (err?.code === "23502") {
       return NextResponse.json(
         {
@@ -161,7 +156,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Permission denied
     if (err?.code === "42501") {
       return NextResponse.json(
         {
@@ -173,7 +167,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Syntax error (often from reserved names/quoting)
     if (err?.code === "42601") {
       return NextResponse.json(
         {

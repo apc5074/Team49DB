@@ -43,21 +43,17 @@ export default function CollectionPage() {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
 
-  // Add-by-ID state
   const [movUid, setMovUid] = useState<string>("");
 
-  // Add-by-title state
   const [mode, setMode] = useState<"id" | "title">("id");
   const [title, setTitle] = useState<string>("");
   const [year, setYear] = useState<string>("");
 
-  // If backend returns 409 with choices:
   const [choices, setChoices] = useState<Choice[]>([]);
   const [picking, setPicking] = useState(false);
 
   const [removingId, setRemovingId] = useState<number | null>(null);
 
-  // Watch-all state
   const [watching, setWatching] = useState(false);
   const [watchedOk, setWatchedOk] = useState(0);
   const [watchedTotal, setWatchedTotal] = useState(0);
@@ -198,7 +194,6 @@ export default function CollectionPage() {
     }
   }
 
-  // ---- Watch-All ----
   async function watchAll() {
     if (movies.length === 0) {
       setErr("This collection is empty.");
@@ -210,7 +205,6 @@ export default function CollectionPage() {
     setWatchedTotal(movies.length);
     setWatchFailures([]);
 
-    // small concurrency to be kind to the server
     const ids = movies.map((m) => m.id);
     const concurrency = 5;
 
@@ -224,7 +218,7 @@ export default function CollectionPage() {
             const res = await fetch(`/api/movie/${id}/watch`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({}), // date is optional; backend defaults to NOW()
+              body: JSON.stringify({}),
             });
             if (!res.ok) throw new Error(await res.text());
             ok += 1;
@@ -378,13 +372,8 @@ export default function CollectionPage() {
             </div>
           ) : (
             movies.map((movie, index) => (
-              <a
-                href={`/explore/${movie.id}`}
-                key={movie.id}
-              >
-                <div
-                  className="group grid grid-cols-[16px_6fr_2fr_1fr_1fr_40px] gap-4 rounded-md px-4 py-2 transition-colors hover:bg-muted/30"
-                >
+              <a href={`/explore/${movie.id}`} key={movie.id}>
+                <div className="group grid grid-cols-[16px_6fr_2fr_1fr_1fr_40px] gap-4 rounded-md px-4 py-2 transition-colors hover:bg-muted/30">
                   <div className="flex items-center justify-center text-sm text-muted-foreground group-hover:text-foreground">
                     {index + 1}
                   </div>
@@ -416,9 +405,9 @@ export default function CollectionPage() {
                       className="h-8 w-8"
                       title="Remove from collection"
                       onClick={(e) => {
-                        e.preventDefault(); // stop the <a> from navigating
-                        e.stopPropagation(); // stop the event from bubbling up
-                        removeMovie(movie.id)
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeMovie(movie.id);
                       }}
                       disabled={removingId === movie.id}
                     >
@@ -443,7 +432,6 @@ export default function CollectionPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Mode switch */}
           <div className="flex gap-2 mb-2">
             <Button
               variant={mode === "id" ? "secondary" : "ghost"}
@@ -461,7 +449,6 @@ export default function CollectionPage() {
             </Button>
           </div>
 
-          {/* Fields */}
           {mode === "id" ? (
             <div className="grid gap-2">
               <Label htmlFor="movUid">Movie ID (mov_uid)</Label>
@@ -505,7 +492,6 @@ export default function CollectionPage() {
             </div>
           )}
 
-          {/* Choices from 409 (multiple matches) */}
           {picking && choices.length > 0 && (
             <div className="mt-4 border border-border rounded-md p-3">
               <p className="text-sm mb-2">Multiple matches — pick one:</p>

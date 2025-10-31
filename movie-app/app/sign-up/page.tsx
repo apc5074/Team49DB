@@ -82,7 +82,6 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <div className="w-full max-w-md bg-card/60 backdrop-blur-md border border-border rounded-2xl shadow-lg p-8 space-y-6">
-        {/* Header */}
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-2 mb-2">
             <Film className="w-8 h-8 text-primary" />
@@ -95,7 +94,6 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -185,7 +183,6 @@ export default function SignUpPage() {
           </Button>
         </form>
 
-        {/* Already have an account */}
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
             Already have an account?{" "}

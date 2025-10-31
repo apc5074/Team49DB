@@ -18,7 +18,7 @@ const COL = {
 } as const;
 
 const SignInSchema = z.object({
-  id: z.string().min(1, "Email or username is required").max(254), // email or username
+  id: z.string().min(1, "Email or username is required").max(254),
   password: z.string().min(1, "Password is required"),
 });
 

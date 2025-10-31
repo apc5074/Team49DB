@@ -5,7 +5,6 @@ import { getSessionUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-// ---------- GET: list movies in a collection (year from earliest platform_release) ----------
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -23,7 +22,6 @@ export async function GET(
     );
   }
 
-  // Ownership check
   const owns = await query<{ exists: boolean }>(
     `
     SELECT EXISTS (
@@ -41,7 +39,6 @@ export async function GET(
     );
   }
 
-  // Fetch movies with earliest platform release date
   const res = await query(
     `
     SELECT
@@ -85,7 +82,6 @@ export async function GET(
   return NextResponse.json(data, { status: 200 });
 }
 
-// ---------- POST: add movie by movUid or by title (+ optional year) ----------
 const AddById = z.object({
   movUid: z.number().int().positive(),
 });
@@ -109,7 +105,6 @@ async function lookupMovUidByTitle(
   if (!title) return { ok: false, code: 404, message: "Empty title" };
 
   if (year) {
-    // Exact title, filter by earliest platform release year via HAVING
     const res = await query<{
       mov_uid: number;
       title: string;
@@ -153,8 +148,6 @@ async function lookupMovUidByTitle(
     return { ok: true, movUid: rows[0].mov_uid };
   }
 
-  // No year: try exact title first, then fuzzy by title;
-  // order by earliest platform release date (desc)
   const exactRes = await query<{
     mov_uid: number;
     title: string;
@@ -257,7 +250,6 @@ export async function POST(
   }
 
   try {
-    // Verify collection ownership
     const owns = await query<{ exists: boolean }>(
       `
       SELECT EXISTS (
@@ -275,7 +267,6 @@ export async function POST(
       );
     }
 
-    // Resolve movUid safely
     let movUid: number;
     if ("movUid" in parsed.data) {
       movUid = parsed.data.movUid;
@@ -295,7 +286,6 @@ export async function POST(
         if (result.code === 404) {
           return NextResponse.json({ error: result.message }, { status: 404 });
         }
-        // 409 with choices for disambiguation
         return NextResponse.json(
           { error: result.message, choices: result.choices ?? [] },
           { status: 409 }
@@ -304,7 +294,6 @@ export async function POST(
       movUid = result.movUid;
     }
 
-    // Insert membership
     await query(
       `
       INSERT INTO p320_49.collection_movies (collection_id, mov_uid)
@@ -333,7 +322,6 @@ export async function POST(
   }
 }
 
-// ---------- DELETE: remove movie from a collection ----------
 const DeleteMovieSchema = z.object({
   movUid: z.number().int().positive(),
 });
@@ -380,7 +368,6 @@ export async function DELETE(
   }
 
   try {
-    // Ownership
     const owns = await query<{ exists: boolean }>(
       `
       SELECT EXISTS (

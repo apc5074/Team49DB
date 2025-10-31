@@ -217,14 +217,12 @@ export default function CollectionsPage() {
           </div>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-6 text-sm text-destructive">
             {typeof error === "string" ? error : "Something went wrong"}
           </div>
         )}
 
-        {/* List */}
         {loading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -259,7 +257,6 @@ export default function CollectionsPage() {
                       <p className="text-xs text-muted-foreground">
                         ID: {c.collectionId}
                       </p>
-                      {/* ⬅️ NEW: movie count */}
                       <p className="text-xs text-muted-foreground mt-1">
                         {c.movieCount} {c.movieCount === 1 ? "movie" : "movies"}
                       </p>

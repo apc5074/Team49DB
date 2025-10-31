@@ -4,11 +4,6 @@ import { z } from "zod";
 
 export const runtime = "nodejs";
 
-/**
- * PATCH /api/collections/:id
- * Body: { name: string, userId: number }
- * - Renames a collection (scoped by userId so users can’t rename others’ collections).
- */
 const RenameSchema = z.object({
   name: z.string().min(1, "Name is required").max(200, "Name too long"),
   userId: z.number().int().positive("Invalid userId"),
@@ -16,7 +11,7 @@ const RenameSchema = z.object({
 
 export async function PATCH(
   req: Request,
-  ctx: { params: Promise<{ id: string }> } // params is async in newer Next.js
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params;
   const collectionId = Number(id);
@@ -61,7 +56,6 @@ export async function PATCH(
 
     return NextResponse.json({ ok: true, collectionId, name }, { status: 200 });
   } catch (err: any) {
-    // Unique violation (e.g., unique (user_id, name))
     if (err?.code === "23505") {
       return NextResponse.json(
         {
@@ -84,13 +78,9 @@ export async function PATCH(
   }
 }
 
-/**
- * DELETE /api/collections/:id?userId=123
- * - Deletes a collection (and cascades `collection_movies` if FK is ON DELETE CASCADE).
- */
 export async function DELETE(
   req: Request,
-  ctx: { params: Promise<{ id: string }> } // params is async in newer Next.js
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params;
   const collectionId = Number(id);
@@ -125,7 +115,6 @@ export async function DELETE(
       );
     }
 
-    // No body for 204
     return new NextResponse(null, { status: 204 });
   } catch (err: any) {
     console.error("DELETE /api/collections/[id] error:", {

@@ -142,7 +142,6 @@ export default function CommunityPage() {
       <Navigation />
 
       <main className="container mx-auto px-4 py-10">
-        {/* Header */}
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -169,10 +168,8 @@ export default function CommunityPage() {
           </div>
         </div>
 
-        {/* Error */}
         {err && <div className="mb-6 text-sm text-destructive">{err}</div>}
 
-        {/* Tabs */}
         <Tabs defaultValue="following" className="w-full">
           <TabsList>
             <TabsTrigger value="following" className="gap-2">
@@ -185,9 +182,7 @@ export default function CommunityPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Following */}
           <TabsContent value="following" className="mt-6">
-            {/* Top bar with Add Friend button */}
             <div className="mb-4 flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 People you’re following
@@ -214,7 +209,6 @@ export default function CommunityPage() {
             />
           </TabsContent>
 
-          {/* Followers */}
           <TabsContent value="followers" className="mt-6">
             <PeopleGrid
               items={filteredFollowers}

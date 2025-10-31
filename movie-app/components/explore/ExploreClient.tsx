@@ -12,7 +12,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Loader2, Search, Calendar } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Search,
+  Calendar,
+} from "lucide-react";
 
 type ExploreRow = {
   mov_uid: number;
@@ -36,7 +42,11 @@ type ExploreResponse = {
   items: ExploreRow[];
 };
 
-export default function ExploreClient({ initial }: { initial: ExploreResponse }) {
+export default function ExploreClient({
+  initial,
+}: {
+  initial: ExploreResponse;
+}) {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -72,7 +82,9 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
     const fetcher = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/explore?${sp.toString()}`, { cache: "no-store" });
+        const res = await fetch(`/api/explore?${sp.toString()}`, {
+          cache: "no-store",
+        });
         const json = await res.json();
         setData(json);
       } catch {
@@ -102,7 +114,13 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
   }
 
   function onHeaderSort(
-    key: "title" | "avg_rating" | "duration" | "genre" | "studio" | "release_date"
+    key:
+      | "title"
+      | "avg_rating"
+      | "duration"
+      | "genre"
+      | "studio"
+      | "release_date"
   ) {
     if (sort === key) toggleOrder();
     else update({ sort: key, order: "asc", page: 1 });
@@ -125,7 +143,6 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
     <section className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Search by keyword */}
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -140,22 +157,27 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
             placeholder="Genre"
             className="w-40"
             defaultValue={genre}
-            onBlur={(e) => update({ genre: e.target.value || undefined, page: 1 })}
+            onBlur={(e) =>
+              update({ genre: e.target.value || undefined, page: 1 })
+            }
           />
           <Input
             placeholder="Cast"
             className="w-40"
             defaultValue={cast}
-            onBlur={(e) => update({ cast: e.target.value || undefined, page: 1 })}
+            onBlur={(e) =>
+              update({ cast: e.target.value || undefined, page: 1 })
+            }
           />
           <Input
             placeholder="Director"
             className="w-40"
             defaultValue={director}
-            onBlur={(e) => update({ director: e.target.value || undefined, page: 1 })}
+            onBlur={(e) =>
+              update({ director: e.target.value || undefined, page: 1 })
+            }
           />
 
-          {/* 🆕 Release Date Filter */}
           <div className="relative w-48">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -187,7 +209,12 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
               <SelectItem value="duration">Duration</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="sm" onClick={toggleOrder} className="gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleOrder}
+            className="gap-1"
+          >
             {order === "asc" ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
@@ -200,14 +227,23 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
 
       <div className="rounded-xl border border-border bg-card/60">
         <div className="grid grid-cols-12 px-4 py-3 text-xs text-muted-foreground gap-2">
-          <button className="text-left col-span-3 font-medium" onClick={() => onHeaderSort("title")}>
+          <button
+            className="text-left col-span-3 font-medium"
+            onClick={() => onHeaderSort("title")}
+          >
             Title
           </button>
           <div className="col-span-2">Directors</div>
-          <button className="text-left col-span-2 font-medium" onClick={() => onHeaderSort("genre")}>
+          <button
+            className="text-left col-span-2 font-medium"
+            onClick={() => onHeaderSort("genre")}
+          >
             Genre
           </button>
-          <button className="text-left col-span-2 font-medium" onClick={() => onHeaderSort("studio")}>
+          <button
+            className="text-left col-span-2 font-medium"
+            onClick={() => onHeaderSort("studio")}
+          >
             Studio
           </button>
           <button
@@ -236,7 +272,9 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
             Loading…
           </div>
         ) : data.items.length === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">No movies found.</div>
+          <div className="p-6 text-sm text-muted-foreground">
+            No movies found.
+          </div>
         ) : (
           <ul className="divide-y divide-border">
             {data.items.map((m) => (
@@ -257,7 +295,9 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
                     className="text-xs text-muted-foreground mt-1 truncate"
                     title={m.cast?.join(", ")}
                   >
-                    {m.cast && m.cast.length ? m.cast.slice(0, 3).join(", ") : "—"}
+                    {m.cast && m.cast.length
+                      ? m.cast.slice(0, 3).join(", ")
+                      : "—"}
                   </div>
                 </div>
 
@@ -268,7 +308,10 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
                   {m.directors.length ? m.directors.join(", ") : "—"}
                 </div>
 
-                <div className="col-span-2 text-sm truncate" title={m.genres.join(", ")}>
+                <div
+                  className="col-span-2 text-sm truncate"
+                  title={m.genres.join(", ")}
+                >
                   {m.genres.length ? m.genres.join(", ") : "—"}
                 </div>
 
@@ -288,7 +331,10 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
                 </div>
 
                 <div className="col-span-1 text-sm text-center">
-                  <div className="font-medium" title={`Average from ${m.rating_count} ratings`}>
+                  <div
+                    className="font-medium"
+                    title={`Average from ${m.rating_count} ratings`}
+                  >
                     {m.avg_rating != null ? m.avg_rating.toFixed(1) : "—"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
@@ -303,8 +349,8 @@ export default function ExploreClient({ initial }: { initial: ExploreResponse })
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, data.total)} of{" "}
-          {data.total}
+          Showing {(page - 1) * pageSize + 1}–
+          {Math.min(page * pageSize, data.total)} of {data.total}
         </div>
         <div className="flex items-center gap-2">
           <Button
