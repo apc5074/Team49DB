@@ -36,6 +36,7 @@ export async function GET(req: Request) {
   const genre = url.searchParams.get("genre")?.trim() ?? "";
   const cast = url.searchParams.get("cast")?.trim() ?? "";
   const director = url.searchParams.get("director")?.trim() ?? "";
+  const studio = url.searchParams.get("studio")?.trim() ?? "";
   const releaseDate = url.searchParams.get("release_date")?.trim() ?? "";
   const sort = (url.searchParams.get("sort") ?? "title").toLowerCase();
   const order =
@@ -121,6 +122,16 @@ export async function GET(req: Request) {
         WHERE di.mov_uid = m.mov_uid AND fc.name ILIKE $${p}
       )`);
       params.push(`%${director}%`);
+      p++;
+    }
+    if (studio) {
+      where.push(`EXISTS (
+        SELECT 1
+        FROM produces pr
+        JOIN film_contributor fcs ON fcs.fc_uid = pr.fc_uid
+        WHERE pr.mov_uid = m.mov_uid AND fcs.name ILIKE $${p}
+      )`);
+      params.push(`%${studio}%`);
       p++;
     }
 

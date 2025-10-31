@@ -57,6 +57,7 @@ export default function ExploreClient({
   const genre = sp.get("genre") ?? "";
   const cast = sp.get("cast") ?? "";
   const director = sp.get("director") ?? "";
+  const studio = sp.get("studio") ?? "";
   const releaseDate = sp.get("release_date") ?? "";
   const sort = (sp.get("sort") ?? "title") as
     | "title"
@@ -175,6 +176,14 @@ export default function ExploreClient({
             defaultValue={director}
             onBlur={(e) =>
               update({ director: e.target.value || undefined, page: 1 })
+            }
+          />
+          <Input
+            placeholder="Studio"
+            className="w-40"
+            defaultValue={studio}
+            onBlur={(e) =>
+              update({ studio: e.target.value || undefined, page: 1 })
             }
           />
 
