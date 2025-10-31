@@ -230,7 +230,7 @@ LEFT JOIN LATERAL (
 ORDER BY
   ${
     sortCol === "title"
-      ? `b.title ${order}`
+      ? `b.title ${order}, b.earliest_release_date ASC`
       : sortCol === "avg_rating"
       ? `b.avg_rating ${order}, b.title ASC`
       : sortCol === "duration"
