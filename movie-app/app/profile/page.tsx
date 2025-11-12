@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navigation from "@/components/Navigation";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   UserPlus,
@@ -15,9 +15,6 @@ import {
   Search,
   Film,
   FolderOpen,
-  Gauge,
-  Repeat2,
-  ListOrdered,
 } from "lucide-react";
 import AddFriendDialog from "@/components/community/AddFriendDialog";
 
@@ -38,6 +35,26 @@ export type Collection = {
   created_at?: string;
 };
 
+type SortMode = "combo" | "rating" | "plays";
+
+type TopMovie = {
+  mov_uid: number;
+  title: string;
+  duration: number | null;
+  age_rating: string | null;
+  rating_value: number | null;
+  rated_at: string | null;
+  watch_count: number;
+  last_watched: string | null;
+  score: number;
+};
+
+const TOP_MOVIE_SORTS: { value: SortMode; label: string }[] = [
+  { value: "combo", label: "Best overall" },
+  { value: "rating", label: "Rating" },
+  { value: "plays", label: "Most plays" },
+];
+
 // --- Social Page ---
 export default function SocialPage() {
   const [following, setFollowing] = useState<CommunityUser[]>([]);
@@ -46,16 +63,11 @@ export default function SocialPage() {
   const [err, setErr] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  // Placeholders: collections + top movies (wire these up later)
-  // Swap these out for real fetches once your APIs are ready
   const [collections, setCollections] = useState<Collection[]>([]);
-
-  const [topMovies /* , setTopMovies */] = useState<
-    { id: string | number; title: string; year?: number }[]
-  >([
-    // TODO: replace with top 10 movies data for the signed-in user
-    // { id: "tt0111161", title: "The Shawshank Redemption", year: 1994 },
-  ]);
+  const [topMovies, setTopMovies] = useState<TopMovie[]>([]);
+  const [topMoviesSort, setTopMoviesSort] = useState<SortMode>("combo");
+  const [topMoviesLoading, setTopMoviesLoading] = useState(true);
+  const [topMoviesError, setTopMoviesError] = useState<string | null>(null);
 
   const [pending, setPending] = useState<
     Record<string, "follow" | "unfollow" | undefined>
@@ -77,8 +89,10 @@ export default function SocialPage() {
       ]);
       setFollowing(follg);
       setFollowers(follwrs);
-    } catch (e: any) {
-      setErr(e?.message || "Failed to load social data");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load social data";
+      setErr(message);
     } finally {
       setLoading(false);
     }
@@ -107,6 +121,44 @@ export default function SocialPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    setTopMoviesLoading(true);
+    setTopMoviesError(null);
+
+    (async () => {
+      try {
+        const params = new URLSearchParams({ sort: topMoviesSort });
+        const res = await fetch(`/api/movie/top?${params.toString()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error || "Failed loading top movies");
+        }
+        const data: { sort: SortMode; movies: TopMovie[] } = await res.json();
+        if (!cancelled) {
+          setTopMovies(data.movies ?? []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setTopMovies([]);
+          const message =
+            err instanceof Error ? err.message : "Failed loading top movies";
+          setTopMoviesError(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setTopMoviesLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [topMoviesSort]);
+
   const normalize = (u: CommunityUser) =>
     `${u.first_name ?? ""} ${u.last_name ?? ""} ${u.username ?? ""} ${
       u.email
@@ -125,6 +177,25 @@ export default function SocialPage() {
   );
 
   const totalCollections = useMemo(() => collections.length, [collections]);
+
+  const renderTopMoviesSortControls = () => (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <span>Sort by:</span>
+      <div className="flex flex-wrap items-center gap-1">
+        {TOP_MOVIE_SORTS.map((opt) => (
+          <Button
+            key={opt.value}
+            size="sm"
+            variant={opt.value === topMoviesSort ? "secondary" : "ghost"}
+            onClick={() => setTopMoviesSort(opt.value)}
+            aria-pressed={opt.value === topMoviesSort}
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
 
   async function follow(email: string) {
     const key = email.toLowerCase();
@@ -148,13 +219,15 @@ export default function SocialPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to follow");
       }
-    } catch (e: any) {
+    } catch (err) {
       setFollowing(prevFollowing);
-      setErr(e?.message || "Failed to follow");
+      const message = err instanceof Error ? err.message : "Failed to follow";
+      setErr(message);
     } finally {
       setPending((p) => {
-        const { [key]: _, ...rest } = p;
-        return rest;
+        const next = { ...p };
+        delete next[key];
+        return next;
       });
     }
   }
@@ -178,13 +251,15 @@ export default function SocialPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to unfollow");
       }
-    } catch (e: any) {
+    } catch (err) {
       setFollowing(prevFollowing);
-      setErr(e?.message || "Failed to unfollow");
+      const message = err instanceof Error ? err.message : "Failed to unfollow";
+      setErr(message);
     } finally {
       setPending((p) => {
-        const { [key]: _, ...rest } = p;
-        return rest;
+        const next = { ...p };
+        delete next[key];
+        return next;
       });
     }
   }
@@ -253,288 +328,143 @@ export default function SocialPage() {
           />
         </section>
 
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="flex flex-wrap">
-            <TabsTrigger value="overview" className="gap-2">
-              <Gauge className="h-4 w-4" /> Overview
-            </TabsTrigger>
-            <TabsTrigger value="following" className="gap-2">
-              <UserPlus className="h-4 w-4" /> Following ({following.length})
-            </TabsTrigger>
-            <TabsTrigger value="followers" className="gap-2">
-              <Users className="h-4 w-4" /> Followers ({followers.length})
-            </TabsTrigger>
-            <TabsTrigger value="collections" className="gap-2">
-              <FolderOpen className="h-4 w-4" /> Collections
-            </TabsTrigger>
-            <TabsTrigger value="top10" className="gap-2">
-              <ListOrdered className="h-4 w-4" /> Top 10 Movies
-            </TabsTrigger>
-          </TabsList>
+        {/* Always-on overview */}
+        <section className="mt-6 grid lg:grid-cols-2 gap-6">
+          <Card className="bg-card/60">
+            <CardHeader>
+              <CardTitle>People you follow</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PeopleGrid
+                items={filteredFollowing.slice(0, 6)}
+                loading={loading}
+                emptyLabel="You're not following anyone yet."
+                renderActions={(u) => (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => unfollow(u.email)}
+                    disabled={pending[u.email.toLowerCase()] === "unfollow"}
+                  >
+                    {pending[u.email.toLowerCase()] === "unfollow"
+                      ? "Removing…"
+                      : "Unfollow"}
+                  </Button>
+                )}
+              />
+              {following.length > 6 && (
+                <div className="mt-3 text-right">
+                  <Link href="#following">
+                    <Button variant="ghost" size="sm">
+                      View all
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          {/* OVERVIEW */}
-          <TabsContent value="overview" className="mt-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              <Card className="bg-card/60">
-                <CardHeader>
-                  <CardTitle>People you follow</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PeopleGrid
-                    items={filteredFollowing.slice(0, 6)}
-                    loading={loading}
-                    emptyLabel="You're not following anyone yet."
-                    renderActions={(u) => (
+          <Card className="bg-card/60">
+            <CardHeader>
+              <CardTitle>Your followers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PeopleGrid
+                items={filteredFollowers.slice(0, 6)}
+                loading={loading}
+                emptyLabel="No one is following you yet."
+                renderActions={(u) => {
+                  const isFollowing = followingSet.has(u.email.toLowerCase());
+                  const pend = pending[u.email.toLowerCase()];
+                  if (isFollowing) {
+                    return (
                       <Button
                         size="sm"
                         variant="secondary"
                         onClick={() => unfollow(u.email)}
-                        disabled={pending[u.email.toLowerCase()] === "unfollow"}
+                        disabled={pend === "unfollow"}
                       >
-                        {pending[u.email.toLowerCase()] === "unfollow"
-                          ? "Removing…"
-                          : "Unfollow"}
+                        {pend === "unfollow" ? "Removing…" : "Unfollow"}
                       </Button>
-                    )}
-                  />
-                  {following.length > 6 && (
-                    <div className="mt-3 text-right">
-                      <Link href="#following">
-                        <Button variant="ghost" size="sm">
-                          View all
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card/60">
-                <CardHeader>
-                  <CardTitle>Your followers</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PeopleGrid
-                    items={filteredFollowers.slice(0, 6)}
-                    loading={loading}
-                    emptyLabel="No one is following you yet."
-                    renderActions={(u) => {
-                      const isFollowing = followingSet.has(
-                        u.email.toLowerCase()
-                      );
-                      const pend = pending[u.email.toLowerCase()];
-                      if (isFollowing) {
-                        return (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => unfollow(u.email)}
-                            disabled={pend === "unfollow"}
-                          >
-                            {pend === "unfollow" ? "Removing…" : "Unfollow"}
-                          </Button>
-                        );
-                      }
-                      return (
-                        <Button
-                          size="sm"
-                          onClick={() => follow(u.email)}
-                          disabled={pend === "follow"}
-                        >
-                          {pend === "follow" ? "Following…" : "Follow back"}
-                        </Button>
-                      );
-                    }}
-                  />
-                  {followers.length > 6 && (
-                    <div className="mt-3 text-right">
-                      <Link href="#followers">
-                        <Button variant="ghost" size="sm">
-                          View all
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card/60 lg:col-span-2">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Your Collections</CardTitle>
-                  <div className="text-xs text-muted-foreground">
-                    (Placeholder)
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {collections.length === 0 ? (
-                    <EmptyPlaceholder
-                      icon={FolderOpen}
-                      label="Collections coming soon"
-                    />
-                  ) : (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {collections.map((c) => (
-                        <Card
-                          key={c.collectionId}
-                          className="bg-card/60 border-dashed"
-                        >
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base truncate">
-                              {c.name}
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="pt-0 text-sm text-muted-foreground">
-                            {c.movieCount}{" "}
-                            {c.movieCount === 1 ? "movie" : "movies"}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card/60 lg:col-span-2">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Your Top 10 Movies</CardTitle>
-                  <div className="text-xs text-muted-foreground">
-                    (Placeholder)
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {topMovies.length === 0 ? (
-                    <EmptyPlaceholder
-                      icon={Film}
-                      label="Top 10 list coming soon"
-                    />
-                  ) : (
-                    <ol className="list-decimal pl-6 space-y-2">
-                      {topMovies.slice(0, 10).map((m, i) => (
-                        <li key={m.id} className="truncate">
-                          {m.title}
-                          {m.year ? (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              ({m.year})
-                            </span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* FOLLOWING */}
-          <TabsContent id="following" value="following" className="mt-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                People you’re following
-              </div>
-              <AddFriendDialog onAdded={load} />
-            </div>
-
-            <PeopleGrid
-              items={filteredFollowing}
-              loading={loading}
-              emptyLabel="You're not following anyone yet."
-              renderActions={(u) => (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => unfollow(u.email)}
-                  disabled={pending[u.email.toLowerCase()] === "unfollow"}
-                >
-                  {pending[u.email.toLowerCase()] === "unfollow"
-                    ? "Removing…"
-                    : "Unfollow"}
-                </Button>
-              )}
-            />
-          </TabsContent>
-
-          {/* FOLLOWERS */}
-          <TabsContent id="followers" value="followers" className="mt-6">
-            <PeopleGrid
-              items={filteredFollowers}
-              loading={loading}
-              emptyLabel="No one is following you yet."
-              renderActions={(u) => {
-                const isFollowing = followingSet.has(u.email.toLowerCase());
-                const pend = pending[u.email.toLowerCase()];
-                if (isFollowing) {
+                    );
+                  }
                   return (
                     <Button
                       size="sm"
-                      variant="secondary"
-                      onClick={() => unfollow(u.email)}
-                      disabled={pend === "unfollow"}
+                      onClick={() => follow(u.email)}
+                      disabled={pend === "follow"}
                     >
-                      {pend === "unfollow" ? "Removing…" : "Unfollow"}
+                      {pend === "follow" ? "Following…" : "Follow back"}
                     </Button>
                   );
-                }
-                return (
-                  <Button
-                    size="sm"
-                    onClick={() => follow(u.email)}
-                    disabled={pend === "follow"}
-                  >
-                    {pend === "follow" ? "Following…" : "Follow back"}
-                  </Button>
-                );
-              }}
-            />
-          </TabsContent>
-
-          {/* COLLECTIONS (placeholder) */}
-          <TabsContent value="collections" className="mt-6">
-            {collections.length === 0 ? (
-              <EmptyPlaceholder
-                icon={FolderOpen}
-                label="Collections coming soon"
+                }}
               />
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {collections.map((c) => (
-                  <Card
-                    key={c.collectionId}
-                    className="bg-card/60 border-dashed"
-                  >
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base truncate">
-                        {c.name}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0 text-sm text-muted-foreground">
-                      {c.movieCount} {c.movieCount === 1 ? "movie" : "movies"}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
+              {followers.length > 6 && (
+                <div className="mt-3 text-right">
+                  <Link href="#followers">
+                    <Button variant="ghost" size="sm">
+                      View all
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          {/* TOP 10 MOVIES (placeholder) */}
-          <TabsContent value="top10" className="mt-6">
-            {topMovies.length === 0 ? (
-              <EmptyPlaceholder icon={Film} label="Top 10 list coming soon" />
-            ) : (
-              <ol className="list-decimal pl-6 space-y-2">
-                {topMovies.slice(0, 10).map((m) => (
-                  <li key={m.id} className="truncate">
-                    {m.title}
-                    {m.year ? (
-                      <span className="text-muted-foreground"> ({m.year})</span>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            )}
-          </TabsContent>
-        </Tabs>
+          <Card className="bg-card/60 lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Your Collections</CardTitle>
+              <div className="text-xs text-muted-foreground">(Placeholder)</div>
+            </CardHeader>
+            <CardContent>
+              {collections.length === 0 ? (
+                <EmptyPlaceholder
+                  icon={FolderOpen}
+                  label="Collections coming soon"
+                />
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {collections.map((c) => (
+                    <Card
+                      key={c.collectionId}
+                      className="bg-card/60 border-dashed"
+                    >
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base truncate">
+                          {c.name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0 text-sm text-muted-foreground">
+                        {c.movieCount} {c.movieCount === 1 ? "movie" : "movies"}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/60 lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
+              <CardTitle>Your Top 10 Movies</CardTitle>
+              {renderTopMoviesSortControls()}
+            </CardHeader>
+            <CardContent>
+              {topMoviesLoading ? (
+                <TopMoviesSkeleton />
+              ) : topMoviesError ? (
+                <div className="text-sm text-destructive">{topMoviesError}</div>
+              ) : topMovies.length === 0 ? (
+                <EmptyPlaceholder
+                  icon={Film}
+                  label="Watch or rate movies to build your list"
+                />
+              ) : (
+                <TopMoviesList movies={topMovies} />
+              )}
+            </CardContent>
+          </Card>
+        </section>
       </main>
     </div>
   );
@@ -662,6 +592,37 @@ function PeopleGrid({
         </Card>
       ))}
     </div>
+  );
+}
+
+function TopMoviesList({ movies }: { movies: TopMovie[] }) {
+  return (
+    <ol className="list-decimal pl-6 space-y-3">
+      {movies.slice(0, 10).map((m) => (
+        <li key={m.mov_uid} className="space-y-1">
+          <div className="font-medium truncate">{m.title}</div>
+          <div className="text-xs text-muted-foreground">
+            {m.rating_value != null ? `${m.rating_value}/5` : "Not rated"} ·{" "}
+            {m.watch_count === 1
+              ? "1 play"
+              : `${m.watch_count.toLocaleString()} plays`}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function TopMoviesSkeleton() {
+  return (
+    <ol className="list-decimal pl-6 space-y-3">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <li key={i} className="space-y-1">
+          <Skeleton className="h-4 w-48 max-w-full" />
+          <Skeleton className="h-3 w-32 max-w-full" />
+        </li>
+      ))}
+    </ol>
   );
 }
 
