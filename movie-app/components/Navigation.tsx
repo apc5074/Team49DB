@@ -11,6 +11,7 @@ import {
   User,
   Users,
   ChevronDown,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/app/hooks/useSession";
@@ -73,6 +74,16 @@ export default function Navigation() {
                 >
                   <Folder className="w-4 h-4" />
                   Collections
+                </Button>
+              </Link>
+              <Link href="/rankings">
+                <Button
+                  variant={isActive("/rankings") ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Trophy className="w-4 h-4" />
+                  Movie Rankings
                 </Button>
               </Link>
             </>
