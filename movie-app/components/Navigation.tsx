@@ -106,12 +106,9 @@ export default function Navigation() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
                     <DropdownMenuItem asChild>
-                      <Link
-                        href="/community"
-                        className="flex items-center gap-2"
-                      >
+                      <Link href="/profile" className="flex items-center gap-2">
                         <Users className="w-4 h-4" />
-                        Community
+                        Profile
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem

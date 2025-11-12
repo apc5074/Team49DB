@@ -166,6 +166,8 @@ export default function CollectionsPage() {
     [loading, collections]
   );
 
+  const totalCollections = useMemo(() => collections.length, [collections])
+
   if (sessionLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -199,6 +201,10 @@ export default function CollectionsPage() {
             <p className="text-muted-foreground mt-1">
               Welcome back, {user.firstName}! Create lists and group your
               favorite movies by theme, mood, or occasion.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              You currently have <span className="font-semibold">{totalCollections}</span>{" "}
+              {totalCollections === 1 ? "collection" : "collections"}.
             </p>
           </div>
 
