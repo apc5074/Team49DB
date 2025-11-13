@@ -54,7 +54,11 @@ export default function MovieDashboard() {
   const sortMovies = () => {
     const sortFn = (a: Movie, b: Movie) => {
       if (sortBy === 'watches') {
-        return b.watch_count - a.watch_count;
+        // Sort by watch count, then by rating as tiebreaker
+        if (b.watch_count !== a.watch_count) {
+          return b.watch_count - a.watch_count;
+        }
+          return b.avg_rating - a.avg_rating;
       } else {
         // Sort by rating, then by watch count as tiebreaker
         if (b.avg_rating !== a.avg_rating) {
@@ -76,6 +80,7 @@ export default function MovieDashboard() {
       
       if (response.ok && data.movies) {
         const sorted = [...data.movies].sort((a, b) => {
+          // Sort by watch count, then by rating as tiebreaker
           if (b.watch_count !== a.watch_count) {
             return b.watch_count - a.watch_count;
           }
@@ -102,6 +107,7 @@ export default function MovieDashboard() {
           setNoFollowing(true);
         }
         const sorted = [...data.movies].sort((a, b) => {
+          // Sort by watch count, then by rating as tiebreaker
           if (b.watch_count !== a.watch_count) {
             return b.watch_count - a.watch_count;
           }
@@ -127,6 +133,7 @@ export default function MovieDashboard() {
       
       if (response.ok && data.movies) {
         const sorted = [...data.movies].sort((a, b) => {
+          // Sort by watch count, then by rating as tiebreaker
           if (b.watch_count !== a.watch_count) {
             return b.watch_count - a.watch_count;
           }
