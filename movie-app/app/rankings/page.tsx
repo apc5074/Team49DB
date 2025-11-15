@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Film, TrendingUp, Users, Star, ArrowUpDown } from 'lucide-react';
+import { Film, TrendingUp, Users, Star, ArrowUpDown, Target } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import {
   DropdownMenu,
@@ -32,11 +32,13 @@ export default function MovieDashboard() {
   const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
   const [followingMovies, setFollowingMovies] = useState<Movie[]>([]);
   const [newReleases, setNewReleases] = useState<Movie[]>([]);
+  const [personalizedMovies, setPersonalizedMovies] = useState<Movie[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('watches');
   const [loading, setLoading] = useState({ 
     popular: true, 
     following: true, 
-    releases: true 
+    releases: true,
+    personalized: true
   });
   const [error, setError] = useState<Record<string, string>>({});
   const [noFollowing, setNoFollowing] = useState(false);
@@ -45,6 +47,7 @@ export default function MovieDashboard() {
     fetchPopularMovies();
     fetchFollowingMovies();
     fetchNewReleases();
+    fetchPersonalizedMovies();
   }, []);
 
   useEffect(() => {
@@ -67,6 +70,7 @@ export default function MovieDashboard() {
     setPopularMovies(prev => [...prev].sort(sortFn));
     setFollowingMovies(prev => [...prev].sort(sortFn));
     setNewReleases(prev => [...prev].sort(sortFn));
+    setPopularMovies(prev => [...prev].sort(sortFn));
   };
 
   const fetchPopularMovies = async () => {
@@ -122,6 +126,23 @@ export default function MovieDashboard() {
       setError(prev => ({ ...prev, releases: 'Failed to load new releases' }));
     } finally {
       setLoading(prev => ({ ...prev, releases: false }));
+    }
+  };
+
+  const fetchPersonalizedMovies = async () => {
+    try {
+      const response = await fetch('/api/rankings/personalized');
+      const data: ApiResponse = await response.json();
+      
+      if (response.ok && data.movies) {
+        setPersonalizedMovies(data.movies);
+      } else {
+        setError(prev => ({ ...prev, personalized: data.error || 'Failed to load' }));
+      }
+    } catch (err) {
+      setError(prev => ({ ...prev, personalized: 'Failed to load personalized movies' }));
+    } finally {
+      setLoading(prev => ({ ...prev, personalized: false }));
     }
   };
 
@@ -282,7 +303,7 @@ export default function MovieDashboard() {
             />
           </div>
 
-          <div className="mt-6">
+          <div className="grid gap-6 lg:grid-cols-2">
             <Section
               title="New Releases This Month"
               icon={Star}
@@ -291,6 +312,14 @@ export default function MovieDashboard() {
               error={error.releases}
               emptyMessage="No new releases this month"
               showReleaseDate={true}
+            />
+            <Section
+              title="Personalized Recommendations"
+              icon={Target}
+              movies={personalizedMovies}
+              loading={loading.personalized}
+              error={error.personalized}
+              emptyMessage="Watch more movies to get personalized recommendations"
             />
           </div>
         </div>
