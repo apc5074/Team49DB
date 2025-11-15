@@ -301,9 +301,7 @@ export default function MovieDashboard() {
               error={error.following}
               emptyMessage={noFollowing ? "You're not following anyone yet. Start following users to see what they're watching!" : "Your friends haven't watched any movies yet"}
             />
-          </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
             <Section
               title="New Releases This Month"
               icon={Star}
@@ -313,6 +311,7 @@ export default function MovieDashboard() {
               emptyMessage="No new releases this month"
               showReleaseDate={true}
             />
+            
             <Section
               title="Personalized Recommendations"
               icon={Target}
