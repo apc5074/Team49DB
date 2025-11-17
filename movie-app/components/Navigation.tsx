@@ -76,14 +76,14 @@ export default function Navigation() {
                   Collections
                 </Button>
               </Link>
-              <Link href="/rankings">
+              <Link href="/recommendations">
                 <Button
-                  variant={isActive("/rankings") ? "default" : "ghost"}
+                  variant={isActive("/recommendations") ? "default" : "ghost"}
                   size="sm"
                   className="gap-2"
                 >
                   <Trophy className="w-4 h-4" />
-                  Movie Rankings
+                  Movie Recommendations
                 </Button>
               </Link>
             </>

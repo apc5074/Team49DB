@@ -79,7 +79,7 @@ export default function MovieDashboard() {
 
   const fetchPopularMovies = async () => {
     try {
-      const response = await fetch('/api/rankings/popular-recent');
+      const response = await fetch('/api/recommendations/popular-recent');
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
@@ -103,7 +103,7 @@ export default function MovieDashboard() {
 
   const fetchFollowingMovies = async () => {
     try {
-      const response = await fetch('/api/rankings/popular-following');
+      const response = await fetch('/api/recommendations/popular-following');
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
@@ -132,7 +132,7 @@ export default function MovieDashboard() {
 
   const fetchNewReleases = async () => {
     try {
-      const response = await fetch('/api/rankings/new-releases');
+      const response = await fetch('/api/recommendations/new-releases');
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
@@ -156,7 +156,7 @@ export default function MovieDashboard() {
 
   const fetchPersonalizedMovies = async () => {
     try {
-      const response = await fetch('/api/rankings/personalized');
+      const response = await fetch('/api/recommendations/personalized');
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
@@ -286,8 +286,8 @@ export default function MovieDashboard() {
           <header className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">Movie Rankings</h1>
-                <p className="text-gray-600">Discover trending movies and new releases</p>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">Recommendations</h1>
+                <p className="text-gray-600">Discover trending movies, new releases, and movies we think you'll like</p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
