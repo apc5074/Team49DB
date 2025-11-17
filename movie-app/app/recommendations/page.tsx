@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Film, TrendingUp, Users, Star, ArrowUpDown, Target } from 'lucide-react';
+import { Film, TrendingUp, Users, Star, ArrowUpDown, Sparkle } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import {
   DropdownMenu,
@@ -339,7 +339,7 @@ export default function MovieDashboard() {
             
             <Section
               title="Personalized Recommendations"
-              icon={Target}
+              icon={Sparkle}
               movies={personalizedMovies}
               loading={loading.personalized}
               error={error.personalized}

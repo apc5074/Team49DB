@@ -17,6 +17,7 @@ interface PersonalizedMovie {
 
 /*
 QUERY steps-
+
 - count how many times a user has watched a movie from each genre
 
 - find the max times a user has watched a certain genre
@@ -38,8 +39,11 @@ QUERY steps-
 - Give each movie an age_rating score based on how much the user likes that age_rating
 - We do this by dividing the amount of times the user has watched that age_rating by the max number of times they've watched any age rating
 
+- Check if the user has watched any movies
+
 - Give each movie that the user has not watched a personal_score
 - This is done by taking the average of the genre, film contributor, and age_rating scores
+- If the user hasn't watched any movies, return nothing
 
 - Find the 20 most similar users and give each a similarity score
 - Do this by finding the 20 users with the most similar rankings of movies as the user
@@ -127,6 +131,12 @@ export async function GET() {
         CROSS JOIN max_age_count mac
       ),
 
+      user_has_watches AS (
+        SELECT EXISTS (
+          SELECT 1 FROM p320_49.watches WHERE user_id = $1
+        ) AS has_watches
+      ),
+
       personal_movie_score AS (
         SELECT 
           m.mov_uid,
@@ -135,9 +145,11 @@ export async function GET() {
         JOIN movie_genre_score mg ON m.mov_uid = mg.mov_uid
         JOIN movie_contributor_score mc ON m.mov_uid = mc.mov_uid
         JOIN movie_age_score ma ON m.mov_uid = ma.mov_uid
-        WHERE m.mov_uid NOT IN (
-          SELECT mov_uid FROM watches WHERE user_id = $1
-        )
+        CROSS JOIN user_has_watches uhw
+        WHERE uhw.has_watches = TRUE
+          AND m.mov_uid NOT IN (
+            SELECT mov_uid FROM watches WHERE user_id = $1
+          )
       ),
 
       similar_users AS (

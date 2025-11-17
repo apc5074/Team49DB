@@ -83,7 +83,7 @@ export default function Navigation() {
                   className="gap-2"
                 >
                   <Trophy className="w-4 h-4" />
-                  Movie Recommendations
+                  Recommendations
                 </Button>
               </Link>
             </>
