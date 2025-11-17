@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Film, TrendingUp, Users, Star, ArrowUpDown } from 'lucide-react';
+import { Film, TrendingUp, Users, Star, ArrowUpDown, Sparkle } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import {
   DropdownMenu,
@@ -32,11 +32,13 @@ export default function MovieDashboard() {
   const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
   const [followingMovies, setFollowingMovies] = useState<Movie[]>([]);
   const [newReleases, setNewReleases] = useState<Movie[]>([]);
+  const [personalizedMovies, setPersonalizedMovies] = useState<Movie[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('watches');
   const [loading, setLoading] = useState({ 
     popular: true, 
     following: true, 
-    releases: true 
+    releases: true,
+    personalized: true
   });
   const [error, setError] = useState<Record<string, string>>({});
   const [noFollowing, setNoFollowing] = useState(false);
@@ -45,6 +47,7 @@ export default function MovieDashboard() {
     fetchPopularMovies();
     fetchFollowingMovies();
     fetchNewReleases();
+    fetchPersonalizedMovies();
   }, []);
 
   useEffect(() => {
@@ -71,11 +74,12 @@ export default function MovieDashboard() {
     setPopularMovies(prev => [...prev].sort(sortFn));
     setFollowingMovies(prev => [...prev].sort(sortFn));
     setNewReleases(prev => [...prev].sort(sortFn));
+    setPopularMovies(prev => [...prev].sort(sortFn));
   };
 
   const fetchPopularMovies = async () => {
     try {
-      const response = await fetch('/api/rankings/popular-recent');
+      const response = await fetch('/api/recommendations/popular-recent');
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
@@ -99,7 +103,7 @@ export default function MovieDashboard() {
 
   const fetchFollowingMovies = async () => {
     try {
-      const response = await fetch('/api/rankings/popular-following');
+      const response = await fetch('/api/recommendations/popular-following');
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
@@ -128,7 +132,7 @@ export default function MovieDashboard() {
 
   const fetchNewReleases = async () => {
     try {
-      const response = await fetch('/api/rankings/new-releases');
+      const response = await fetch('/api/recommendations/new-releases');
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
@@ -147,6 +151,23 @@ export default function MovieDashboard() {
       setError(prev => ({ ...prev, releases: 'Failed to load new releases' }));
     } finally {
       setLoading(prev => ({ ...prev, releases: false }));
+    }
+  };
+
+  const fetchPersonalizedMovies = async () => {
+    try {
+      const response = await fetch('/api/recommendations/personalized');
+      const data: ApiResponse = await response.json();
+      
+      if (response.ok && data.movies) {
+        setPersonalizedMovies(data.movies);
+      } else {
+        setError(prev => ({ ...prev, personalized: data.error || 'Failed to load' }));
+      }
+    } catch (err) {
+      setError(prev => ({ ...prev, personalized: 'Failed to load personalized movies' }));
+    } finally {
+      setLoading(prev => ({ ...prev, personalized: false }));
     }
   };
 
@@ -265,8 +286,8 @@ export default function MovieDashboard() {
           <header className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">Movie Rankings</h1>
-                <p className="text-gray-600">Discover trending movies and new releases</p>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">Recommendations</h1>
+                <p className="text-gray-600">Discover trending movies, new releases, and movies we think you'll like</p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -305,9 +326,7 @@ export default function MovieDashboard() {
               error={error.following}
               emptyMessage={noFollowing ? "You're not following anyone yet. Start following users to see what they're watching!" : "Your friends haven't watched any movies yet"}
             />
-          </div>
 
-          <div className="mt-6">
             <Section
               title="New Releases This Month"
               icon={Star}
@@ -316,6 +335,15 @@ export default function MovieDashboard() {
               error={error.releases}
               emptyMessage="No new releases this month"
               showReleaseDate={true}
+            />
+            
+            <Section
+              title="Personalized Recommendations"
+              icon={Sparkle}
+              movies={personalizedMovies}
+              loading={loading.personalized}
+              error={error.personalized}
+              emptyMessage="Watch more movies to get personalized recommendations"
             />
           </div>
         </div>
