@@ -81,17 +81,19 @@ export async function POST(req: NextRequest) {
   const { firstName, lastName, email, username, password } = parsed.data;
 
   try {
-    const passwordHash = await bcrypt.hash(password, 12);
+    const salt = `${username}|${email}|${lastName}`;
+
+    const passwordHash = await bcrypt.hash(password + salt, 12);
 
     const { rows } = await query<{ user_id: number }>(
       `
       INSERT INTO p320_49.user
-        (first_name, last_name, email, username, password_hash, account_creation_date, last_access_date)
+        (first_name, last_name, email, username, password_hash, salt, account_creation_date, last_access_date)
       VALUES
-        ($1, $2, $3, $4, $5, NOW(), NOW())
+        ($1, $2, $3, $4, $5, $6, NOW(), NOW())
       RETURNING user_id
       `,
-      [firstName, lastName, email, username, passwordHash]
+      [firstName, lastName, email, username, passwordHash, salt]
     );
 
     return NextResponse.json(

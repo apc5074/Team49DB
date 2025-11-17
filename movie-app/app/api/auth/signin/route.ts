@@ -14,6 +14,7 @@ const COL = {
   email: "email",
   username: "username",
   passwordHash: "password_hash",
+  salt: "salt",
   lastAccess: "last_access_date",
 } as const;
 
@@ -24,8 +25,7 @@ const SignInSchema = z.object({
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
-  if (!body)
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
 
   const parsed = SignInSchema.safeParse(body);
   if (!parsed.success) {
@@ -41,11 +41,13 @@ export async function POST(req: Request) {
         ${COL.lastName}     AS last_name,
         ${COL.email}        AS email,
         ${COL.username}     AS username,
-        ${COL.passwordHash} AS password_hash
+        ${COL.passwordHash} AS password_hash,
+        ${COL.salt}         AS salt
       FROM ${TABLE}
       WHERE lower(${COL.email}) = lower($1) OR lower(${COL.username}) = lower($1)
       LIMIT 1
     `;
+
     const { rows } = await query<{
       user_id: number;
       first_name: string;
@@ -53,35 +55,27 @@ export async function POST(req: Request) {
       email: string;
       username: string;
       password_hash: string | null;
+      salt: string | null;
     }>(findSql, [id]);
 
     if (rows.length === 0) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
     const user = rows[0];
-    if (!user.password_hash) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
+
+    if (!user.password_hash || !user.salt) {
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    const ok = await bcrypt.compare(password, user.password_hash);
+    const ok = await bcrypt.compare(password + user.salt, user.password_hash);
     if (!ok) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    await query(
-      `UPDATE ${TABLE} SET ${COL.lastAccess} = NOW() WHERE ${COL.userId} = $1`,
-      [user.user_id]
-    );
+    await query(`UPDATE ${TABLE} SET ${COL.lastAccess} = NOW() WHERE ${COL.userId} = $1`, [
+      user.user_id,
+    ]);
 
     await createSession({
       userId: user.user_id,
@@ -110,9 +104,6 @@ export async function POST(req: Request) {
       message: err?.message,
       detail: err?.detail,
     });
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
