@@ -14,7 +14,7 @@ interface PopularMovie {
   avg_rating: number;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const me = await getSessionUser().catch(() => null);
     
@@ -24,6 +24,13 @@ export async function GET() {
         { status: 401 }
       );
     }
+
+    const { searchParams } = new URL(request.url);
+    const sortBy = searchParams.get('sortBy') || 'watches';
+    
+    const orderByClause = sortBy === 'rating' 
+      ? 'avg_rating DESC, watch_count DESC'
+      : 'watch_count DESC, avg_rating DESC';
 
     const { rows } = await query<PopularMovie>(
       `
@@ -40,7 +47,7 @@ export async function GET() {
       LEFT JOIN p320_49.rates r ON m.mov_uid = r.mov_uid
       WHERE f.follower_id = $1
       GROUP BY m.mov_uid, m.title, m.duration, m.age_rating
-      ORDER BY watch_count DESC
+      ORDER BY ${orderByClause}
       LIMIT 20
       `,
       [me.userId]

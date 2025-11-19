@@ -33,7 +33,9 @@ export default function MovieDashboard() {
   const [followingMovies, setFollowingMovies] = useState<Movie[]>([]);
   const [newReleases, setNewReleases] = useState<Movie[]>([]);
   const [personalizedMovies, setPersonalizedMovies] = useState<Movie[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>('watches');
+  const [trendingSortBy, setTrendingSortBy] = useState<SortOption>('watches');
+  const [friendsSortBy, setFriendsSortBy] = useState<SortOption>('watches');
+  const [releasesSortBy, setReleasesSortBy] = useState<SortOption>('watches');
   const [loading, setLoading] = useState({ 
     popular: true, 
     following: true, 
@@ -44,53 +46,29 @@ export default function MovieDashboard() {
   const [noFollowing, setNoFollowing] = useState(false);
 
   useEffect(() => {
-    fetchPopularMovies();
-    fetchFollowingMovies();
-    fetchNewReleases();
+    fetchPopularMovies(trendingSortBy);
+  }, [trendingSortBy]);
+
+  useEffect(() => {
+    fetchFollowingMovies(friendsSortBy);
+  }, [friendsSortBy]);
+
+  useEffect(() => {
+    fetchNewReleases(releasesSortBy);
+  }, [releasesSortBy]);
+
+  useEffect(() => {
     fetchPersonalizedMovies();
   }, []);
 
-  useEffect(() => {
-    sortMovies();
-  }, [sortBy]);
-
-  const sortMovies = () => {
-    const sortFn = (a: Movie, b: Movie) => {
-      if (sortBy === 'watches') {
-        // Sort by watch count, then by rating as tiebreaker
-        if (b.watch_count !== a.watch_count) {
-          return b.watch_count - a.watch_count;
-        }
-          return b.avg_rating - a.avg_rating;
-      } else {
-        // Sort by rating, then by watch count as tiebreaker
-        if (b.avg_rating !== a.avg_rating) {
-          return b.avg_rating - a.avg_rating;
-        }
-        return b.watch_count - a.watch_count;
-      }
-    };
-
-    setPopularMovies(prev => [...prev].sort(sortFn));
-    setFollowingMovies(prev => [...prev].sort(sortFn));
-    setNewReleases(prev => [...prev].sort(sortFn));
-    setPopularMovies(prev => [...prev].sort(sortFn));
-  };
-
-  const fetchPopularMovies = async () => {
+  const fetchPopularMovies = async (sortBy: SortOption) => {
+    setLoading(prev => ({ ...prev, popular: true }));
     try {
-      const response = await fetch('/api/recommendations/popular-recent');
+      const response = await fetch(`/api/recommendations/popular-recent?sortBy=${sortBy}`);
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
-        const sorted = [...data.movies].sort((a, b) => {
-          // Sort by watch count, then by rating as tiebreaker
-          if (b.watch_count !== a.watch_count) {
-            return b.watch_count - a.watch_count;
-          }
-          return b.avg_rating - a.avg_rating;
-        });
-        setPopularMovies(sorted);
+        setPopularMovies(data.movies);
       } else {
         setError(prev => ({ ...prev, popular: data.error || 'Failed to load' }));
       }
@@ -101,23 +79,17 @@ export default function MovieDashboard() {
     }
   };
 
-  const fetchFollowingMovies = async () => {
+  const fetchFollowingMovies = async (sortBy: SortOption) => {
+    setLoading(prev => ({ ...prev, following: true }));
     try {
-      const response = await fetch('/api/recommendations/popular-following');
+      const response = await fetch(`/api/recommendations/popular-following?sortBy=${sortBy}`);
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
         if (data.movies.length === 0) {
           setNoFollowing(true);
         }
-        const sorted = [...data.movies].sort((a, b) => {
-          // Sort by watch count, then by rating as tiebreaker
-          if (b.watch_count !== a.watch_count) {
-            return b.watch_count - a.watch_count;
-          }
-          return b.avg_rating - a.avg_rating;
-        });
-        setFollowingMovies(sorted);
+        setFollowingMovies(data.movies);
       } else if (response.status === 401) {
         setError(prev => ({ ...prev, following: 'Please log in to see this section' }));
       } else {
@@ -130,20 +102,14 @@ export default function MovieDashboard() {
     }
   };
 
-  const fetchNewReleases = async () => {
+  const fetchNewReleases = async (sortBy: SortOption) => {
+    setLoading(prev => ({ ...prev, releases: true }));
     try {
-      const response = await fetch('/api/recommendations/new-releases');
+      const response = await fetch(`/api/recommendations/new-releases?sortBy=${sortBy}`);
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
-        const sorted = [...data.movies].sort((a, b) => {
-          // Sort by watch count, then by rating as tiebreaker
-          if (b.watch_count !== a.watch_count) {
-            return b.watch_count - a.watch_count;
-          }
-          return b.avg_rating - a.avg_rating;
-        });
-        setNewReleases(sorted);
+        setNewReleases(data.movies);
       } else {
         setError(prev => ({ ...prev, releases: data.error || 'Failed to load' }));
       }
@@ -240,15 +206,54 @@ export default function MovieDashboard() {
     error?: string;
     emptyMessage: string;
     showReleaseDate?: boolean;
-  }> = ({ title, icon: Icon, movies, loading, error, emptyMessage, showReleaseDate = false }) => (
+    showSorting?: boolean;
+    sortBy?: SortOption;
+    onSortChange?: (sort: SortOption) => void;
+    caption?: string;
+  }> = ({ 
+    title, 
+    icon: Icon, 
+    movies, 
+    loading, 
+    error, 
+    emptyMessage, 
+    showReleaseDate = false,
+    showSorting = false,
+    sortBy = 'watches',
+    onSortChange,
+    caption
+  }) => (
     <div className="bg-gray-50 rounded-xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-100 rounded-lg">
             <Icon className="text-blue-600" size={24} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+            {caption && (
+              <p className="text-sm text-gray-500 mt-0.5">{caption}</p>
+            )}
+          </div>
         </div>
+        {showSorting && onSortChange && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <ArrowUpDown className="w-4 h-4" />
+                {sortBy === 'watches' ? 'Most Watched' : 'Highest Rated'}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onSortChange('watches')}>
+                Most Watched
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSortChange('rating')}>
+                Highest Rated
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       
       {loading ? (
@@ -287,24 +292,8 @@ export default function MovieDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-4xl font-bold text-gray-900 mb-2">Recommendations</h1>
-                <p className="text-gray-600">Discover trending movies, new releases, and movies we think you'll like</p>
+                <p className="text-gray-600">Discover trending movies, new releases, and movies we think you&apos;ll like</p>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <ArrowUpDown className="w-4 h-4" />
-                    Sort by: {sortBy === 'watches' ? 'Most Watched' : 'Highest Rated'}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setSortBy('watches')}>
-                    Most Watched
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('rating')}>
-                    Highest Rated
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </header>
 
@@ -316,6 +305,10 @@ export default function MovieDashboard() {
               loading={loading.popular}
               error={error.popular}
               emptyMessage="No trending movies found in the last 90 days"
+              showSorting={true}
+              sortBy={trendingSortBy}
+              onSortChange={setTrendingSortBy}
+              caption="In the last 90 days"
             />
             
             <Section
@@ -325,6 +318,9 @@ export default function MovieDashboard() {
               loading={loading.following}
               error={error.following}
               emptyMessage={noFollowing ? "You're not following anyone yet. Start following users to see what they're watching!" : "Your friends haven't watched any movies yet"}
+              showSorting={true}
+              sortBy={friendsSortBy}
+              onSortChange={setFriendsSortBy}
             />
 
             <Section
@@ -335,6 +331,9 @@ export default function MovieDashboard() {
               error={error.releases}
               emptyMessage="No new releases this month"
               showReleaseDate={true}
+              showSorting={true}
+              sortBy={releasesSortBy}
+              onSortChange={setReleasesSortBy}
             />
             
             <Section

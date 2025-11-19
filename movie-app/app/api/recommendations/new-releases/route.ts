@@ -14,8 +14,15 @@ interface NewRelease {
   avg_rating: number;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const sortBy = searchParams.get('sortBy') || 'watches';
+    
+    const orderByClause = sortBy === 'rating' 
+      ? 'avg_rating DESC, watch_count DESC, earliest_release ASC'
+      : 'watch_count DESC, avg_rating DESC, earliest_release ASC';
+
     const { rows } = await query<NewRelease>(
       `
       SELECT 
@@ -33,7 +40,7 @@ export async function GET() {
       WHERE EXTRACT(YEAR FROM pr.release_date) = EXTRACT(YEAR FROM CURRENT_DATE)
         AND EXTRACT(MONTH FROM pr.release_date) = EXTRACT(MONTH FROM CURRENT_DATE)
       GROUP BY m.mov_uid, m.title, m.duration, m.age_rating
-      ORDER BY watch_count DESC, earliest_release ASC
+      ORDER BY ${orderByClause}
       LIMIT 5
       `,
       []

@@ -13,8 +13,15 @@ interface PopularMovie {
   avg_rating: number;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const sortBy = searchParams.get('sortBy') || 'watches';
+    
+    const orderByClause = sortBy === 'rating' 
+      ? 'avg_rating DESC, watch_count DESC'
+      : 'watch_count DESC, avg_rating DESC';
+
     const { rows } = await query<PopularMovie>(
       `
       SELECT 
@@ -29,7 +36,7 @@ export async function GET() {
       LEFT JOIN p320_49.rates r ON m.mov_uid = r.mov_uid
       WHERE w.date >= CURRENT_DATE - INTERVAL '90 days'
       GROUP BY m.mov_uid, m.title, m.duration, m.age_rating
-      ORDER BY watch_count DESC
+      ORDER BY ${orderByClause}
       LIMIT 20
       `,
       []
