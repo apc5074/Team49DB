@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -62,6 +61,8 @@ export default function SocialPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [showAllFollowing, setShowAllFollowing] = useState(false);
+  const [showAllFollowers, setShowAllFollowers] = useState(false);
 
   const [collections, setCollections] = useState<Collection[]>([]);
   const [topMovies, setTopMovies] = useState<TopMovie[]>([]);
@@ -330,13 +331,14 @@ export default function SocialPage() {
 
         {/* Always-on overview */}
         <section className="mt-6 grid lg:grid-cols-2 gap-6">
-          <Card className="bg-card/60">
-            <CardHeader>
+          <Card className="bg-card/60 lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>People you follow</CardTitle>
+              <AddFriendDialog onAdded={load} />
             </CardHeader>
             <CardContent>
               <PeopleGrid
-                items={filteredFollowing.slice(0, 6)}
+                items={showAllFollowing ? filteredFollowing : filteredFollowing.slice(0, 8)}
                 loading={loading}
                 emptyLabel="You're not following anyone yet."
                 renderActions={(u) => (
@@ -352,25 +354,27 @@ export default function SocialPage() {
                   </Button>
                 )}
               />
-              {following.length > 6 && (
+              {following.length > 8 && (
                 <div className="mt-3 text-right">
-                  <Link href="#following">
-                    <Button variant="ghost" size="sm">
-                      View all
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowAllFollowing(!showAllFollowing)}
+                  >
+                    {showAllFollowing ? 'Show less' : `View all (${following.length})`}
+                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card className="bg-card/60">
+          <Card className="bg-card/60 lg:col-span-2">
             <CardHeader>
               <CardTitle>Your followers</CardTitle>
             </CardHeader>
             <CardContent>
               <PeopleGrid
-                items={filteredFollowers.slice(0, 6)}
+                items={showAllFollowers ? filteredFollowers : filteredFollowers.slice(0, 8)}
                 loading={loading}
                 emptyLabel="No one is following you yet."
                 renderActions={(u) => {
@@ -399,13 +403,15 @@ export default function SocialPage() {
                   );
                 }}
               />
-              {followers.length > 6 && (
+              {followers.length > 8 && (
                 <div className="mt-3 text-right">
-                  <Link href="#followers">
-                    <Button variant="ghost" size="sm">
-                      View all
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowAllFollowers(!showAllFollowers)}
+                  >
+                    {showAllFollowers ? 'Show less' : `View all (${followers.length})`}
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -532,11 +538,11 @@ function PeopleGrid({
 }) {
   if (loading) {
     return (
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="h-28 rounded-2xl bg-card/60 border border-border animate-pulse"
+            className="h-40 rounded-lg bg-card/60 border border-border animate-pulse"
           />
         ))}
       </div>
@@ -555,37 +561,30 @@ function PeopleGrid({
   }
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {items.map((u) => (
         <Card
           key={u.user_id}
           className="bg-card/60 backdrop-blur-sm border border-border hover:border-foreground/40 transition-colors"
         >
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-3 text-base">
-              <Avatar className="h-9 w-9">
-                <AvatarFallback>
-                  {initials(u.first_name, u.last_name, u.username, u.email)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <div className="truncate">{displayName(u)}</div>
+          <CardContent className="pt-6 pb-4 flex flex-col items-center text-center gap-3">
+            <Avatar className="h-16 w-16">
+              <AvatarFallback className="text-lg">
+                {initials(u.first_name, u.last_name, u.username, u.email)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 w-full">
+              <div className="font-semibold truncate">{displayName(u)}</div>
+              {u.username && (
                 <div className="text-xs text-muted-foreground truncate">
-                  {u.username ? `@${u.username}` : u.email}
+                  @{u.username}
                 </div>
+              )}
+              <div className="text-xs text-muted-foreground truncate">
+                {u.email}
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground truncate">
-              {u.email}
-            </span>
-            <div className="flex items-center gap-2">
-              <Link href={`/profile/${u.user_id}`}>
-                <Button variant="ghost" size="sm">
-                  View
-                </Button>
-              </Link>
+            </div>
+            <div className="w-full">
               {renderActions?.(u)}
             </div>
           </CardContent>

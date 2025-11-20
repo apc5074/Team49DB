@@ -16,13 +16,16 @@ interface Movie {
   title: string;
   duration: number;
   age_rating: string;
-  watch_count: number;
+  watch_count?: number;
+  friend_count?: number;
+  total_watches?: number;
   avg_rating: number;
   earliest_release?: string;
 }
 
 interface ApiResponse {
   movies: Movie[];
+  hasFollowing?: boolean;
   error?: string;
 }
 
@@ -43,7 +46,7 @@ export default function MovieDashboard() {
     personalized: true
   });
   const [error, setError] = useState<Record<string, string>>({});
-  const [noFollowing, setNoFollowing] = useState(false);
+  const [hasFollowing, setHasFollowing] = useState(false);
 
   useEffect(() => {
     fetchPopularMovies(trendingSortBy);
@@ -86,10 +89,8 @@ export default function MovieDashboard() {
       const data: ApiResponse = await response.json();
       
       if (response.ok && data.movies) {
-        if (data.movies.length === 0) {
-          setNoFollowing(true);
-        }
         setFollowingMovies(data.movies);
+        setHasFollowing(data.hasFollowing || false);
       } else if (response.status === 401) {
         setError(prev => ({ ...prev, following: 'Please log in to see this section' }));
       } else {
@@ -161,10 +162,16 @@ export default function MovieDashboard() {
     }
   };
 
-  const MovieCard: React.FC<{ movie: Movie; rank: number; showReleaseDate?: boolean }> = ({ 
+  const MovieCard: React.FC<{ 
+    movie: Movie; 
+    rank: number; 
+    showReleaseDate?: boolean;
+    showFriendStats?: boolean;
+  }> = ({ 
     movie, 
     rank, 
-    showReleaseDate = false 
+    showReleaseDate = false,
+    showFriendStats = false
   }) => (
     <div className="flex items-start gap-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
       <div className={`shrink-0 w-12 h-12 ${getRankStyle(rank)} rounded-lg flex items-center justify-center text-white font-bold text-lg`}>
@@ -178,10 +185,25 @@ export default function MovieDashboard() {
             {formatDuration(movie.duration)}
           </span>
           <span className="px-2 py-0.5 bg-gray-100 rounded">{movie.age_rating}</span>
-          <span className="flex items-center gap-1 text-blue-600 font-medium">
-            <TrendingUp size={14} />
-            {movie.watch_count} watches
-          </span>
+          
+          {showFriendStats ? (
+            <>
+              <span className="flex items-center gap-1 text-purple-600 font-medium">
+                <Users size={14} />
+                {movie.friend_count} {movie.friend_count === 1 ? 'friend' : 'friends'}
+              </span>
+              <span className="flex items-center gap-1 text-blue-600 font-medium">
+                <TrendingUp size={14} />
+                {movie.total_watches} {movie.total_watches === 1 ? 'watch' : 'watches'}
+              </span>
+            </>
+          ) : (
+            <span className="flex items-center gap-1 text-blue-600 font-medium">
+              <TrendingUp size={14} />
+              {movie.watch_count} watches
+            </span>
+          )}
+          
           {movie.avg_rating > 0 && (
             <span className="flex items-center gap-1 text-yellow-600">
               <Star size={14} fill="currentColor" />
@@ -206,6 +228,7 @@ export default function MovieDashboard() {
     error?: string;
     emptyMessage: string;
     showReleaseDate?: boolean;
+    showFriendStats?: boolean;
     showSorting?: boolean;
     sortBy?: SortOption;
     onSortChange?: (sort: SortOption) => void;
@@ -218,6 +241,7 @@ export default function MovieDashboard() {
     error, 
     emptyMessage, 
     showReleaseDate = false,
+    showFriendStats = false,
     showSorting = false,
     sortBy = 'watches',
     onSortChange,
@@ -276,6 +300,7 @@ export default function MovieDashboard() {
               movie={movie} 
               rank={idx + 1}
               showReleaseDate={showReleaseDate}
+              showFriendStats={showFriendStats}
             />
           ))}
         </div>
@@ -317,10 +342,11 @@ export default function MovieDashboard() {
               movies={followingMovies}
               loading={loading.following}
               error={error.following}
-              emptyMessage={noFollowing ? "You're not following anyone yet. Start following users to see what they're watching!" : "Your friends haven't watched any movies yet"}
+              emptyMessage={hasFollowing ? "Your friends haven't watched any movies yet" : "You're not following anyone yet. Start following users to see what they're watching!"}
               showSorting={true}
               sortBy={friendsSortBy}
               onSortChange={setFriendsSortBy}
+              showFriendStats={true}
             />
 
             <Section

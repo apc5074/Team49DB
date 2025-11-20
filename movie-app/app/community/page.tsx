@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import Navigation from "@/components/Navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -185,7 +184,7 @@ export default function CommunityPage() {
           <TabsContent value="following" className="mt-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                People you’re following
+                People you&apos;re following
               </div>
               <AddFriendDialog onAdded={load} />
             </div>
@@ -260,11 +259,11 @@ function PeopleGrid({
 }) {
   if (loading) {
     return (
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="h-28 rounded-2xl bg-card/60 border border-border animate-pulse"
+            className="h-40 rounded-lg bg-card/60 border border-border animate-pulse"
           />
         ))}
       </div>
@@ -283,37 +282,30 @@ function PeopleGrid({
   }
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {items.map((u) => (
         <Card
           key={u.user_id}
           className="bg-card/60 backdrop-blur-sm border border-border hover:border-foreground/40 transition-colors"
         >
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-3 text-base">
-              <Avatar className="h-9 w-9">
-                <AvatarFallback>
-                  {initials(u.first_name, u.last_name, u.username, u.email)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <div className="truncate">{displayName(u)}</div>
+          <CardContent className="pt-6 pb-4 flex flex-col items-center text-center gap-3">
+            <Avatar className="h-16 w-16">
+              <AvatarFallback className="text-lg">
+                {initials(u.first_name, u.last_name, u.username, u.email)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 w-full">
+              <div className="font-semibold truncate">{displayName(u)}</div>
+              {u.username && (
                 <div className="text-xs text-muted-foreground truncate">
-                  {u.username ? `@${u.username}` : u.email}
+                  @{u.username}
                 </div>
+              )}
+              <div className="text-xs text-muted-foreground truncate">
+                {u.email}
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground truncate">
-              {u.email}
-            </span>
-            <div className="flex items-center gap-2">
-              <Link href={`/profile/${u.user_id}`}>
-                <Button variant="ghost" size="sm">
-                  View
-                </Button>
-              </Link>
+            </div>
+            <div className="w-full">
               {renderActions?.(u)}
             </div>
           </CardContent>

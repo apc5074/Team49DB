@@ -107,8 +107,14 @@ export default function Navigation() {
                   <DropdownMenuContent align="end" className="w-44">
                     <DropdownMenuItem asChild>
                       <Link href="/profile" className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
+                        <User className="w-4 h-4" />
                         Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/community" className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Community
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem
